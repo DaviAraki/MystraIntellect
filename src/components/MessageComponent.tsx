@@ -6,7 +6,12 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Message } from '@/types/message';
 
-const CodeBlock = ({inline, className, children, ...props}: any) => {
+interface MessageComponentProps {
+  message: Message;
+  onCodeSelect: (code: string, language: string) => void;
+}
+
+const CodeBlock = ({inline, className, children, onCodeSelect, ...props}: any) => {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
@@ -22,35 +27,43 @@ const CodeBlock = ({inline, className, children, ...props}: any) => {
         >
           {String(children).replace(/\n$/, '')}
         </SyntaxHighlighter>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="absolute top-2 right-2 text-xs bg-gray-800 hover:bg-gray-700"
-          onClick={() => {
-            navigator.clipboard.writeText(String(children));
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }}
-        >
-          {copied ? (
-            <>
-              <CheckIcon className="h-4 w-4 mr-1" /> Copied!
-            </>
-          ) : (
-            <>
-              <CopyIcon className="h-4 w-4 mr-1" /> Copy
-            </>
-          )}
-        </Button>
+        <div className="absolute top-2 right-2 flex space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs bg-gray-800 hover:bg-gray-700"
+            onClick={() => onCodeSelect(String(children), language === 'jsx' ? 'react' : language)}
+          >
+            Preview Code
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs bg-gray-800 hover:bg-gray-700"
+            onClick={() => {
+              navigator.clipboard.writeText(String(children));
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            {copied ? (
+              <>
+                <CheckIcon className="h-4 w-4 mr-1" /> Copied
+              </>
+            ) : (
+              <>
+                <CopyIcon className="h-4 w-4 mr-1" /> Copy
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     )
   }
   return <code className={className} {...props}>{children}</code>
 }
 
-export function MessageComponent({ message }: { message: Message }) {
-  const [copied, setCopied] = useState(false);
-  
+export function MessageComponent({ message, onCodeSelect }: MessageComponentProps) {
   return (
     <div className="mb-4 flex items-start">
       {message.sender === 'user' ? (
@@ -65,32 +78,13 @@ export function MessageComponent({ message }: { message: Message }) {
           <ReactMarkdown 
             className="prose prose-invert max-w-none"
             components={{
-              code: CodeBlock
+              code: ({ inline, className, children, ...props }) => 
+                CodeBlock({ inline, className, children, onCodeSelect, ...props })
             }}
           >
             {message.text}
           </ReactMarkdown>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-2 text-xs"
-          onClick={() => {
-            navigator.clipboard.writeText(message.text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }}
-        >
-          {copied ? (
-            <>
-              <CheckIcon className="h-4 w-4 mr-1" /> Copied!
-            </>
-          ) : (
-            <>
-              <CopyIcon className="h-4 w-4 mr-1" /> Copy
-            </>
-          )}
-        </Button>
       </div>
     </div>
   );

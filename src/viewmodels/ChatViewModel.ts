@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 
 export function useChatViewModel() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Welcome to HackerChat!", sender: "bot" },
+    { id: 1, text: "Welcome to Araki Chat!", sender: "bot" },
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
