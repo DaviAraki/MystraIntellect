@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       async start(controller) {
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
+          console.log("Chunk received from AI:", content); // Add this line
           controller.enqueue(encoder.encode(content));
         }
         controller.close();

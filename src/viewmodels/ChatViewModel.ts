@@ -63,7 +63,6 @@ export function useChatViewModel() {
 
           const chunk = decoder.decode(value, { stream: true });
 
-          // **Important:** Avoid mutating botMessage directly
           setMessages(prevMessages => 
             prevMessages.map(msg => 
               msg.id === botMessage.id ? { ...msg, text: msg.text + chunk } : msg
