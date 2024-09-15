@@ -107,7 +107,7 @@ export function CodePreview({ code, language }: CodePreviewProps) {
   }
 
   return (
-    <div className="w-1/2 border-l border-gray-800 flex flex-col">
+    <div className="sticky top-0 right-0 w-1/2 h-screen border-l border-gray-800 flex flex-col">
       <div className="p-2 bg-gray-900 text-green-400">Code Preview ({language})</div>
       <iframe
         src={`https://codesandbox.io/embed/${sandboxId}?fontsize=14&hidenavigation=1&theme=dark`}
