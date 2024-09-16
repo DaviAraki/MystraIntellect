@@ -13,6 +13,7 @@ export default function ChatPage() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [previewCode, setPreviewCode] = useState('');
   const [previewLanguage, setPreviewLanguage] = useState('html');
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     if (autoScroll || isStreaming) {
@@ -36,10 +37,20 @@ export default function ChatPage() {
     setAutoScroll(isScrolledToBottom);
   };
 
+  const handleCodeSelect = (code: string, language: string) => {
+    setPreviewCode(code);
+    setPreviewLanguage(language);
+    setShowPreview(true);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreview(false);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-black text-green-400 font-mono">
       <header className="p-4 border-b border-gray-800">
-        <h1 className="text-2xl font-bold">Araki Chat</h1>
+        <h1 className="text-2xl font-bold">MystraIntellect </h1>
       </header>
       <div className="flex-grow flex">
         <ScrollArea 
@@ -51,14 +62,17 @@ export default function ChatPage() {
             <MessageComponent 
               key={message.id} 
               message={message} 
-              onCodeSelect={(code, language) => {
-                setPreviewCode(code);
-                setPreviewLanguage(language);
-              }}
+              onCodeSelect={handleCodeSelect}
             />
           ))}
         </ScrollArea>
-        <CodePreview code={previewCode} language={previewLanguage} />
+        {showPreview && (
+          <CodePreview 
+            code={previewCode} 
+            language={previewLanguage} 
+            onClose={handleClosePreview}
+          />
+        )}
       </div>
       <InputArea
         inputMessage={inputMessage}

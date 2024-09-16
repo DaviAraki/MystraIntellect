@@ -18,16 +18,11 @@ const CodeBlock = ({inline, className, children, onCodeSelect, ...props}: any) =
   
   if (!inline && language) {
     return (
-      <div className="relative">
-        <SyntaxHighlighter
-          style={atomDark}
-          language={language}
-          PreTag="div"
-          {...props}
-        >
-          {String(children).replace(/\n$/, '')}
-        </SyntaxHighlighter>
-        <div className="absolute top-2 right-2 flex space-x-2">
+      <div className="relative overflow-hidden">
+        <div className="sticky top-0 z-10 flex justify-end items-center space-x-2 p-2 bg-gray-900 bg-opacity-75 backdrop-blur-sm">
+          <span className="text-xs bg-gray-700 px-2 py-1 rounded">
+            {language}
+          </span>
           <Button
             variant="ghost"
             size="sm"
@@ -56,6 +51,16 @@ const CodeBlock = ({inline, className, children, onCodeSelect, ...props}: any) =
               </>
             )}
           </Button>
+        </div>
+        <div className="relative z-0">
+          <SyntaxHighlighter
+            style={atomDark}
+            language={language}
+            PreTag="div"
+            {...props}
+          >
+            {String(children).replace(/\n$/, '')}
+          </SyntaxHighlighter>
         </div>
       </div>
     )

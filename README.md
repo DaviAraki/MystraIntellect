@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MystraIntellect - AI-Powered Developer Assistant
+
+MystraIntellect is an AI-powered developer assistant built with Next.js and OpenAI's GPT model. It provides a hacker-themed chat interface where users can ask coding questions and receive expert advice.
+
+## Features
+
+- Real-time AI-powered chat interface
+- Code syntax highlighting
+- Code preview functionality
+- Markdown support for bot responses
+- Responsive design
+
+## Technologies Used
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- OpenAI API
+- ShadcnUI components
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. Install dependencies:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Set up environment variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create a `.env.local` file in the root directory and add your OpenAI API key:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run the development server:
 
-## Learn More
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `src/app`: Contains the main application pages and API routes
+- `src/components`: React components used throughout the application
+- `src/lib`: Utility functions and configurations
+- `src/services`: Service layer for API interactions
+- `src/types`: TypeScript type definitions
+- `src/viewmodels`: View models for managing component state and logic
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Key Components
 
-## Deploy on Vercel
+- Chat interface: `src/app/chat/page.tsx`
+- Message component: `src/components/MessageComponent.tsx`
+- Input area: `src/components/InputArea.tsx`
+- OpenAI integration: `src/app/api/openai/route.ts`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Customization
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+You can customize the AI's behavior by modifying the system instruction in the `ChatService.sendMessage` method:
+
+## To-Do List
+
+- [ ] Add a "Clear Chat" button to the chat interface
+- [ ] Add Chat History to the Chat Interface
+- [ ] Add a "Settings" button to the chat interface
+- [ ] Improve Preview Code Functionality

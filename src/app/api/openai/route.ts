@@ -4,13 +4,13 @@ import { openai } from '@/lib/openai';
 export async function POST(req: Request) {
   try {
     const { systemInstruction, messages } = await req.json();
-    console.log("Received request:", { systemInstruction, messages });
 
     const enhancedSystemInstruction = `
       ${systemInstruction}
       You are an expert software developer AI assistant. Your primary focus is on helping with coding, software architecture, best practices, and problem-solving in various programming languages and frameworks. 
       - Provide concise, accurate, and efficient solutions.
       - Explain complex concepts clearly and suggest improvements when appropriate.
+      - The code generated will be used to create a CodeSandbox, so be aware of the sandbox environment, keep the style in the same file as the code unless specified otherwise.
       - Be aware of modern development practices, design patterns, and performance considerations.
       - If asked about a specific technology, framework, or language, tailor your responses accordingly.
     `;
@@ -31,7 +31,6 @@ export async function POST(req: Request) {
       async start(controller) {
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
-          console.log("Chunk received from AI:", content); // Add this line
           controller.enqueue(encoder.encode(content));
         }
         controller.close();
@@ -42,7 +41,6 @@ export async function POST(req: Request) {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
   } catch (error) {
-    console.error('Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
