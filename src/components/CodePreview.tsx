@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 interface CodePreviewProps {
   code: string;
   language: string;
-  onClose: () => void; // Add this prop
+  onClose: () => void; 
 }
 
 export function CodePreview({ code, language, onClose }: CodePreviewProps) {
@@ -20,7 +20,6 @@ export function CodePreview({ code, language, onClose }: CodePreviewProps) {
       try {
         let files: Record<string, { content: string }> = {};
         
-        // Check if the code contains React-specific syntax
         const isReactCode = code.includes('React.') || code.includes('import React') || code.includes('extends React.Component');
         
         if (isReactCode || language === 'react') {
@@ -28,8 +27,8 @@ export function CodePreview({ code, language, onClose }: CodePreviewProps) {
             'package.json': {
               content: JSON.stringify({
                 dependencies: {
-                  react: "^17.0.2",
-                  "react-dom": "^17.0.2"
+                  react: "^18.3.1",
+                  "react-dom": "^18.3.1"
                 }
               })
             },
