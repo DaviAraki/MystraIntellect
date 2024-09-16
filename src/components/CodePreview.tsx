@@ -1,96 +1,91 @@
 import React, { useEffect, useState } from 'react';
 
 interface CodePreviewProps {
-  code: string;
-  language: string;
-  onClose: () => void; 
+  files: Record<string, { content: string }>;
+  onClose: () => void;
 }
 
-export function CodePreview({ code, language, onClose }: CodePreviewProps) {
+export function CodePreview({ files, onClose }: CodePreviewProps) {
   const [sandboxId, setSandboxId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const createSandbox = async () => {
-      if (!code) {
+      console.log('Creating sandbox with files:', files);
+      if (Object.keys(files).length === 0) {
         setSandboxId(null);
         return;
       }
 
-      try {
-        let files: Record<string, { content: string }> = {};
-        
-        const isReactCode = code.includes('React.') || code.includes('import React') || code.includes('extends React.Component');
-        
-        if (isReactCode || language === 'react') {
-          files = {
-            'package.json': {
-              content: JSON.stringify({
-                dependencies: {
-                  react: "^18.3.1",
-                  "react-dom": "^18.3.1"
-                }
-              })
+      // Prepare files for CodeSandbox
+      const sandboxFiles: Record<string, { content: string }> = {
+        'package.json': {
+          content: JSON.stringify({
+            name: "react-sandbox",
+            version: "1.0.0",
+            description: "React sandbox",
+            main: "src/index.js",
+            dependencies: {
+              react: "^17.0.2",
+              "react-dom": "^17.0.2",
+              "react-scripts": "4.0.3"
             },
-            'index.js': {
-              content: `
-                import React from 'react';
-                import ReactDOM from 'react-dom';
-                import App from './App';
-                ReactDOM.render(<App />, document.getElementById('root'));
-              `
-            },
-            'App.js': {
-              content: code
-            },
-            'App.css': {
-              content: ''
+            scripts: {
+              start: "react-scripts start",
+              build: "react-scripts build",
+              test: "react-scripts test --env=jsdom",
+              eject: "react-scripts eject"
             }
-          };
-        } else if (language === 'vue') {
-          files = {
-            'package.json': {
-              content: JSON.stringify({
-                dependencies: {
-                  vue: "^2.6.14"
-                }
-              })
-            },
-            'index.js': {
-              content: `
-                import Vue from 'vue';
-                import App from './App.vue';
-                new Vue({
-                  render: h => h(App)
-                }).$mount('#app');
-              `
-            },
-            'App.vue': {
-              content: code
-            }
-          };
-        } else {
-          files = {
-            'index.html': {
-              content: `
-                <!DOCTYPE html>
-                <html>
-                  <body>
-                    <div id="app"></div>
-                    <script>${code}</script>
-                  </body>
-                </html>
-              `
-            }
-          };
-        }
+          })
+        },
+        'public/index.html': {
+          content: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>React App</title>
+</head>
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+</body>
+</html>
+          `.trim()
+        },
+        'src/index.js': {
+          content: `
+import React from 'react';
+import ReactDOM from 'react-dom';
+import App from './App';
 
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+          `.trim()
+        }
+      };
+
+      // Add user files to sandboxFiles, adjusting paths if necessary
+      Object.entries(files).forEach(([filename, { content }]) => {
+        if (filename.startsWith('src/')) {
+          sandboxFiles[filename] = { content };
+        } else {
+          sandboxFiles[`src/${filename}`] = { content };
+        }
+      });
+
+      try {
         const response = await fetch('https://codesandbox.io/api/v1/sandboxes/define?json=1', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ files })
+          body: JSON.stringify({ files: sandboxFiles })
         });
 
         if (!response.ok) {
@@ -98,6 +93,7 @@ export function CodePreview({ code, language, onClose }: CodePreviewProps) {
         }
 
         const data = await response.json();
+        console.log('Sandbox created:', data);
         setSandboxId(data.sandbox_id);
         setError(null);
       } catch (e) {
@@ -107,13 +103,13 @@ export function CodePreview({ code, language, onClose }: CodePreviewProps) {
     };
 
     createSandbox();
-  }, [code, language]);
+  }, [files]);
 
   if (error) {
     return (
       <div className="sticky top-0 right-0 w-1/2 h-screen border-l border-gray-800 flex flex-col">
         <div className="p-2 bg-gray-900 text-green-400 flex justify-between items-center">
-          <span>Code Preview ({language})</span>
+          <span>Code Preview</span>
           <button onClick={onClose} className="text-white hover:text-red-500">
             ✕
           </button>
@@ -127,7 +123,7 @@ export function CodePreview({ code, language, onClose }: CodePreviewProps) {
     return (
       <div className="sticky top-0 right-0 w-1/2 h-screen border-l border-gray-800 flex flex-col">
         <div className="p-2 bg-gray-900 text-green-400 flex justify-between items-center">
-          <span>Code Preview ({language})</span>
+          <span>Code Preview</span>
           <button onClick={onClose} className="text-white hover:text-red-500">
             ✕
           </button>
@@ -140,7 +136,7 @@ export function CodePreview({ code, language, onClose }: CodePreviewProps) {
   return (
     <div className="sticky top-0 right-0 w-1/2 h-screen border-l border-gray-800 flex flex-col">
       <div className="p-2 bg-gray-900 text-green-400 flex justify-between items-center">
-        <span>Code Preview ({language})</span>
+        <span>Code Preview</span>
         <button onClick={onClose} className="text-white hover:text-red-500">
           ✕
         </button>
