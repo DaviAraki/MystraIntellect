@@ -30,7 +30,7 @@ export async function POST(req: Request) {
         ...messages
       ],
       stream: true,
-      temperature: 0.7, // Adjust for a balance between creativity and precision
+      temperature: 0.4, // Adjust for a balance between creativity and precision
       max_tokens: 1000, // Increase token limit for more detailed responses
     });
 

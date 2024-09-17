@@ -10,7 +10,18 @@ import { Button } from "@/components/ui/button"; // Add this import
 import { Input } from "@/components/ui/input"; // Add this import
 
 export default function ChatPage() {
-  const { messages, inputMessage, setInputMessage, sendMessage, isStreaming, apiKey, setApiKey, isApiKeySet, setIsApiKeySet, validateApiKey } = useChatViewModel();
+  const { 
+    messages, 
+    inputMessage, 
+    setInputMessage, 
+    sendMessage, 
+    isStreaming, 
+    apiKey, 
+    setApiKey, 
+    isApiKeySet, 
+    validateApiKey,
+    clearApiKey
+  } = useChatViewModel();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
@@ -93,8 +104,16 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-screen bg-black text-green-400 font-mono">
-      <header className="p-4 border-b border-gray-800">
+      <header className="p-4 border-b border-gray-800 flex justify-between items-center">
         <h1 className="text-2xl font-bold">MystraIntellect</h1>
+        {isApiKeySet && (
+          <Button 
+            onClick={clearApiKey}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            Clear API Key
+          </Button>
+        )}
       </header>
       {!isApiKeySet ? (
         <div className="flex-grow flex items-center justify-center">
@@ -109,9 +128,7 @@ export default function ChatPage() {
             <Button 
               onClick={async () => {
                 const isValid = await validateApiKey(apiKey);
-                if (isValid) {
-                  setIsApiKeySet(true);
-                } else {
+                if (!isValid) {
                   alert('Invalid API key. Please try again.');
                 }
               }} 

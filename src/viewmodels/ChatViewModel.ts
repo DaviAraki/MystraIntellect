@@ -1,6 +1,6 @@
 import { ChatService } from '@/services/ChatServices';
 import { Message } from '@/types/message';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export function useChatViewModel() {
   const [messages, setMessages] = useState<Message[]>([
@@ -10,6 +10,15 @@ export function useChatViewModel() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [isApiKeySet, setIsApiKeySet] = useState(false);
+
+  // Load API key from localStorage on component mount
+  useEffect(() => {
+    const storedApiKey = localStorage.getItem('mystraIntellectApiKey');
+    if (storedApiKey) {
+      setApiKey(storedApiKey);
+      setIsApiKeySet(true);
+    }
+  }, []);
 
   const addMessage = useCallback((message: Message) => {
     setMessages(prevMessages => [...prevMessages, message]);
@@ -64,8 +73,33 @@ export function useChatViewModel() {
   }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey]);
 
   const validateApiKey = useCallback(async (key: string) => {
-    return await ChatService.validateApiKey(key);
+    const isValid = await ChatService.validateApiKey(key);
+    if (isValid) {
+      localStorage.setItem('mystraIntellectApiKey', key);
+      setIsApiKeySet(true);
+    }
+    return isValid;
   }, []);
 
-  return { messages, inputMessage, setInputMessage, sendMessage, isStreaming, apiKey, setApiKey, isApiKeySet, setIsApiKeySet, validateApiKey };
+  // Add a function to clear the API key
+  const clearApiKey = useCallback(() => {
+    localStorage.removeItem('mystraIntellectApiKey');
+    setApiKey('');
+    setIsApiKeySet(false);
+  }, []);
+
+  return { 
+    messages, 
+    inputMessage, 
+    setInputMessage, 
+    sendMessage, 
+    isStreaming, 
+    apiKey, 
+    setApiKey, 
+    isApiKeySet, 
+    setIsApiKeySet, 
+    validateApiKey,
+    clearApiKey  // Add this to the returned object
+  };
 }
+
