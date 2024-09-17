@@ -8,7 +8,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'API key is required' }, { status: 401 });
     }
 
-    const { systemInstruction, messages } = await req.json();
+    const { systemInstruction, messages, model } = await req.json();
 
     const openai = new OpenAI({ apiKey });
 
@@ -19,12 +19,12 @@ export async function POST(req: Request) {
       - Explain complex concepts clearly and suggest improvements when appropriate.
       - Be aware of modern development practices, design patterns, and performance considerations.
       - If asked about a specific technology, framework, or language, tailor your responses accordingly.
-      - When providing code solutions, specify the file names for each code block using the format: [filename: code_content] inside the markdown text.
+      - When providing code solutions, specify the file names for each code block using the format: [filename: code_content] inside the markdown text on code block .
       - If multiple files are needed, provide them in separate code blocks with their respective filenames.
     `;
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: model, // Use the model from the request
       messages: [
         { role: "system", content: enhancedSystemInstruction },
         ...messages

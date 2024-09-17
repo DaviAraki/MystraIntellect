@@ -8,6 +8,7 @@ import { InputArea } from '@/components/InputArea';
 import { CodePreview } from '@/components/CodePreview'; // Add this import
 import { Button } from "@/components/ui/button"; // Add this import
 import { Input } from "@/components/ui/input"; // Add this import
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ChatPage() {
   const { 
@@ -20,7 +21,9 @@ export default function ChatPage() {
     setApiKey, 
     isApiKeySet, 
     validateApiKey,
-    clearApiKey
+    clearApiKey,
+    selectedModel,
+    setSelectedModel
   } = useChatViewModel();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -168,10 +171,24 @@ export default function ChatPage() {
           )}
         </div>
       )}
+      {isApiKeySet && (
+        <div className="p-4 border-t border-gray-800">
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gpt-4o-mini">GPT-4-mini</SelectItem>
+              <SelectItem value="gpt-4o">GPT-4</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <InputArea
         inputMessage={inputMessage}
         setInputMessage={setInputMessage}
         sendMessage={sendMessage}
+        isDisabled={isStreaming}
       />
     </div>
   )

@@ -10,6 +10,7 @@ export function useChatViewModel() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [isApiKeySet, setIsApiKeySet] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
 
   // Load API key from localStorage on component mount
   useEffect(() => {
@@ -45,7 +46,7 @@ export function useChatViewModel() {
     setInputMessage('');
 
     try {
-      const reader = await ChatService.sendMessage(messages.concat(userMessage), apiKey);
+      const reader = await ChatService.sendMessage(messages.concat(userMessage), apiKey, selectedModel);
       const decoder = new TextDecoder();
 
       const botMessage: Message = {
@@ -70,7 +71,7 @@ export function useChatViewModel() {
       console.error('Error:', error);
       setIsStreaming(false);
     }
-  }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey]);
+  }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey, selectedModel]);
 
   const validateApiKey = useCallback(async (key: string) => {
     const isValid = await ChatService.validateApiKey(key);
@@ -99,7 +100,9 @@ export function useChatViewModel() {
     isApiKeySet, 
     setIsApiKeySet, 
     validateApiKey,
-    clearApiKey  // Add this to the returned object
+    clearApiKey, 
+    selectedModel, 
+    setSelectedModel 
   };
 }
 

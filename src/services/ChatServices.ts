@@ -1,7 +1,7 @@
 import { Message } from "@/types/message";
 
 export class ChatService {
-  static async sendMessage(messages: Message[], apiKey: string): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  static async sendMessage(messages: Message[], apiKey: string, selectedModel: string): Promise<ReadableStreamDefaultReader<Uint8Array>> {
     const response = await fetch('/api/openai', {
       method: 'POST',
       headers: {
@@ -14,6 +14,7 @@ export class ChatService {
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.text
         })),
+        model: selectedModel,
       }),
     });
 

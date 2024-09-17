@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { Message } from '@/types/message';
 import { CodeBlock } from './CodeBlock';
 import { Button } from './ui/button';
+import { useCodePreview } from '@/hooks/useCodePreview';
 
 interface MessageComponentProps {
   message: Message;
@@ -12,39 +13,16 @@ interface MessageComponentProps {
 }
 
 export function MessageComponent({ message, onPreviewCode }: MessageComponentProps) {
-  const handlePreviewCode = () => {
-    const files: Record<string, { content: string }> = {};
-    
-    const codeBlockRegex = /```(\w+)\n([\s\S]+?)```/g;
-    let match;
+  const { handlePreviewCode, hasCode } = useCodePreview(message);
 
-    while ((match = codeBlockRegex.exec(message.text)) !== null) {
-      const [, language, content] = match;
-      
-      // Skip bash commands
-      if (language.toLowerCase() === 'bash' || language.toLowerCase() === 'shell') {
-        continue;
-      }
-
-      // Check for filename in a comment at the start of the code block
-      const fileNameMatch = content.match(/\/\/\s*\[filename:\s*(.+?)\]|\*\s*\[filename:\s*(.+?)\]/);
-      const fileName = fileNameMatch ? (fileNameMatch[1] || fileNameMatch[2]).trim() : `file.${language}`;
-
-      // Remove the filename comment from the content
-      const contentWithoutFilename = content.replace(/\/\/\s*\[filename:.+?\]|\*\s*\[filename:.+?\]/, '').trim();
-
-      files[fileName] = { content: contentWithoutFilename };
-    }
-
-
+  const onPreviewClick = () => {
+    const files = handlePreviewCode();
     if (Object.keys(files).length > 0) {
       onPreviewCode(files);
     } else {
       console.log('No files extracted');
     }
   };
-
-  const hasCode = /```(\w+)\n([\s\S]+?)```/g.test(message.text);
 
   return (
     <div className="mb-4 flex items-start">
@@ -69,7 +47,7 @@ export function MessageComponent({ message, onPreviewCode }: MessageComponentPro
             </ReactMarkdown>
             {hasCode && (
               <Button
-                onClick={handlePreviewCode}
+                onClick={onPreviewClick}
                 className="mt-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 text-white"
               >
                 Preview Code
