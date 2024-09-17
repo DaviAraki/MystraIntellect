@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       - Explain complex concepts clearly and suggest improvements when appropriate.
       - Be aware of modern development practices, design patterns, and performance considerations.
       - If asked about a specific technology, framework, or language, tailor your responses accordingly.
-      - When providing code solutions, specify the file names for each code block using the format: [filename: code_content].
+      - When providing code solutions, specify the file names for each code block using the format: [filename: code_content] inside the markdown text.
       - If multiple files are needed, provide them in separate code blocks with their respective filenames.
     `;
 

@@ -3,13 +3,19 @@ import { CopyIcon, CheckIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { ReactNode } from 'react';
 
-export const CodeBlock = ({inline, className, children, ...props}: any) => {
+interface CodeBlockProps {
+  className?: string;
+  children: ReactNode;
+}
+
+export const CodeBlock = ({className, children, ...props }: CodeBlockProps) => {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
   
-  if (!inline && language) {
+  if (language) {
     return (
       <div className="relative overflow-hidden">
         <div className="sticky top-0 z-10 flex justify-end items-center space-x-2 p-2 bg-gray-900 bg-opacity-75 backdrop-blur-sm">

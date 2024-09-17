@@ -67,9 +67,6 @@ export default function ChatPage() {
     };
   }, []);
 
-  const handleCodeSelect = (code: string) => {
-    setPreviewFiles({ 'index.js': { content: code } });
-  };
 
   const handlePreviewCode = (files: Record<string, { content: string }>) => {
     if (Object.keys(files).length > 0) {
@@ -105,7 +102,6 @@ export default function ChatPage() {
               <MessageComponent 
                 key={message.id} 
                 message={message} 
-                onCodeSelect={handleCodeSelect}
                 onPreviewCode={handlePreviewCode}
               />
             ))}

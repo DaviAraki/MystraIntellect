@@ -8,6 +8,7 @@ interface CodePreviewProps {
 export function CodePreview({ files, onClose }: CodePreviewProps) {
   const [sandboxId, setSandboxId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  console.log('files', files);
 
   useEffect(() => {
     const createSandbox = async () => {
@@ -72,11 +73,13 @@ ReactDOM.render(
 
       // Add user files to sandboxFiles, adjusting paths if necessary
       Object.entries(files).forEach(([filename, { content }]) => {
-        if (filename.startsWith('src/')) {
-          sandboxFiles[filename] = { content };
-        } else {
-          sandboxFiles[`src/${filename}`] = { content };
+        let adjustedFilename = filename;
+        if (!filename.startsWith('src/')) {
+          adjustedFilename = `src/${adjustedFilename}`;
         }
+        // Convert .javascript extension to .js
+        adjustedFilename = adjustedFilename.replace(/\.javascript$/, '.js');
+        sandboxFiles[adjustedFilename] = { content };
       });
 
       try {

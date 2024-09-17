@@ -8,11 +8,10 @@ import { Button } from './ui/button';
 
 interface MessageComponentProps {
   message: Message;
-  onCodeSelect: (code: string) => void;
   onPreviewCode: (files: Record<string, { content: string }>) => void;
 }
 
-export function MessageComponent({ message, onCodeSelect, onPreviewCode }: MessageComponentProps) {
+export function MessageComponent({ message, onPreviewCode }: MessageComponentProps) {
   const handlePreviewCode = () => {
     const files: Record<string, { content: string }> = {};
     
@@ -62,8 +61,8 @@ export function MessageComponent({ message, onCodeSelect, onPreviewCode }: Messa
             <ReactMarkdown 
               className="prose prose-invert max-w-none"
               components={{
-                code: ({ inline, className, children, ...props }) => 
-                  CodeBlock({ inline, className, children, onCodeSelect, ...props })
+                code: ({  className, children, ...props }) => 
+                  CodeBlock({  className, children, ...props })
               }}
             >
               {message.text}
