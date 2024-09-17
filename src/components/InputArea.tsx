@@ -6,9 +6,10 @@ interface InputAreaProps {
   inputMessage: string;
   setInputMessage: (message: string) => void;
   sendMessage: () => void;
+  isDisabled?: boolean;
 }
 
-export function InputArea({ inputMessage, setInputMessage, sendMessage }: InputAreaProps) {
+export function InputArea({ inputMessage, setInputMessage, sendMessage, isDisabled }: InputAreaProps) {
   return (
     <div className="p-4 border-t border-gray-800">
       <div className="flex space-x-2">
@@ -22,10 +23,12 @@ export function InputArea({ inputMessage, setInputMessage, sendMessage }: InputA
               sendMessage();
             }
           }}
+          disabled={isDisabled}
         />
         <Button 
           onClick={sendMessage}
           className="bg-green-600 hover:bg-green-700 text-black"
+          disabled={isDisabled}
         >
           Send
         </Button>

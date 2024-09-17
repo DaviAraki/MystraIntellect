@@ -8,6 +8,8 @@ export function useChatViewModel() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [isApiKeySet, setIsApiKeySet] = useState(false);
 
   const addMessage = useCallback((message: Message) => {
     setMessages(prevMessages => [...prevMessages, message]);
@@ -22,7 +24,7 @@ export function useChatViewModel() {
   }, []);
 
   const sendMessage = useCallback(async () => {
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || !apiKey) return;
 
     const userMessage: Message = {
       id: messages.length + 1,
@@ -34,7 +36,7 @@ export function useChatViewModel() {
     setInputMessage('');
 
     try {
-      const reader = await ChatService.sendMessage(messages.concat(userMessage));
+      const reader = await ChatService.sendMessage(messages.concat(userMessage), apiKey);
       const decoder = new TextDecoder();
 
       const botMessage: Message = {
@@ -59,7 +61,11 @@ export function useChatViewModel() {
       console.error('Error:', error);
       setIsStreaming(false);
     }
-  }, [inputMessage, messages, addMessage, updateLastBotMessage]);
+  }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey]);
 
-  return { messages, inputMessage, setInputMessage, sendMessage, isStreaming };
+  const validateApiKey = useCallback(async (key: string) => {
+    return await ChatService.validateApiKey(key);
+  }, []);
+
+  return { messages, inputMessage, setInputMessage, sendMessage, isStreaming, apiKey, setApiKey, isApiKeySet, setIsApiKeySet, validateApiKey };
 }
