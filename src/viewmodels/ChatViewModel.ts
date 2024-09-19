@@ -12,6 +12,7 @@ export function useChatViewModel() {
   const [isApiKeySet, setIsApiKeySet] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
   const [error, setError] = useState<string | null>(null);
+  const [threadId, setThreadId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const storedApiKey = localStorage.getItem('mystraIntellectApiKey');
@@ -47,7 +48,9 @@ export function useChatViewModel() {
     setError(null);
 
     try {
-      const reader = await ChatService.sendMessage(messages.concat(userMessage), apiKey, selectedModel);
+      const { threadId: newThreadId, stream } = await ChatService.sendMessage(inputMessage, apiKey, selectedModel, threadId);
+      setThreadId(newThreadId);  // Update the threadId state
+      const reader = stream.getReader();
       const decoder = new TextDecoder();
 
       const botMessage: Message = {
@@ -76,7 +79,7 @@ export function useChatViewModel() {
         setError('An unknown error occurred');
       }
     }
-  }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey, selectedModel]);
+  }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey, selectedModel, threadId]);
 
   const validateApiKey = useCallback(async (key: string) => {
     try {
@@ -121,7 +124,9 @@ export function useChatViewModel() {
     selectedModel, 
     setSelectedModel,
     error,
-    setError
+    setError,
+    threadId,
+    setThreadId
   };
 }
 

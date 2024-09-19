@@ -1,20 +1,21 @@
-import { Message } from "@/types/message";
-
 export class ChatService {
-  static async sendMessage(messages: Message[], apiKey: string, selectedModel: string): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  static async sendMessage(
+    message: string,
+    apiKey: string,
+    selectedModel: string,
+    threadId?: string
+  ): Promise<{ threadId: string; stream: ReadableStream<Uint8Array> }> {
+    console.log('threadId', threadId);
     try {
       const response = await fetch('/api/openai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          systemInstruction: "You are an expert software developer AI assistant. Your primary focus is on helping with coding, software architecture, best practices, and problem-solving in various programming languages and frameworks.",
-          messages: messages.map(msg => ({
-            role: msg.sender === 'user' ? 'user' : 'assistant',
-            content: msg.text
-          })),
+          threadId,
+          message,
           model: selectedModel,
         }),
       });
@@ -24,7 +25,39 @@ export class ChatService {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      return response.body!.getReader();
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      // Read the first chunk to get the threadId
+      const { value, done } = await reader.read();
+      if (done) {
+        throw new Error('Stream ended unexpectedly');
+      }
+
+      const firstChunk = decoder.decode(value);
+      const [threadIdJson, ...restOfChunk] = firstChunk.split('\n');
+      const { threadId: newThreadId } = JSON.parse(threadIdJson);
+
+      // Create a new ReadableStream with the remaining content
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(restOfChunk.join('\n')));
+        },
+        async pull(controller) {
+          const { value, done } = await reader.read();
+          if (done) {
+            controller.close();
+          } else {
+            controller.enqueue(value);
+          }
+        },
+      });
+
+      return { threadId: newThreadId, stream };
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to send message: ${error.message}`);
@@ -38,7 +71,7 @@ export class ChatService {
       const response = await fetch('/api/openai', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
         },
       });
 
