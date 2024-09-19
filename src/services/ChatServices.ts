@@ -1,16 +1,21 @@
-
 export class ChatService {
-  static async sendMessage(message: string, apiKey: string, assistantId: string, threadId?: string): Promise<{ message: string; threadId: string }> {
+  static async sendMessage(
+    message: string,
+    apiKey: string,
+    selectedModel: string,
+    threadId?: string
+  ): Promise<ReadableStream<Uint8Array>> {
     try {
       const response = await fetch('/api/openai', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
           threadId,
           message,
+          model: selectedModel,
         }),
       });
 
@@ -19,7 +24,11 @@ export class ChatService {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+
+      return response.body;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to send message: ${error.message}`);
@@ -33,7 +42,7 @@ export class ChatService {
       const response = await fetch('/api/openai', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${apiKey}`
+          'Authorization': `Bearer ${apiKey}`,
         },
       });
 

@@ -1,110 +1,130 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const assistantId = 'asst_t5SQBj41UAk05cyYtudfE9j0'
+// Your Assistant ID
+const assistantId = 'asst_t5SQBj41UAk05cyYtudfE9j0';
 
 export async function POST(req: Request) {
   try {
+    // Extract API Key from Authorization header
     const apiKey = req.headers.get('Authorization')?.split(' ')[1];
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 401 });
     }
 
+    // Parse the request body
     const { threadId, message } = await req.json();
 
+    // Validate required parameters
     if (!assistantId || !message) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
+    // Initialize OpenAI with the provided API key
     const openai = new OpenAI({ apiKey });
 
     try {
-      // Create a new thread if threadId is not provided
-      const thread = threadId 
+      // Create or retrieve a thread based on threadId
+      const thread = threadId
         ? await openai.beta.threads.retrieve(threadId)
         : await openai.beta.threads.create();
 
       // Add the user's message to the thread
       await openai.beta.threads.messages.create(thread.id, {
         role: "user",
-        content: message
+        content: message,
       });
 
-      // Run the assistant
-      const run = await openai.beta.threads.runs.create(thread.id, {
-        assistant_id: assistantId
+      // Create a ReadableStream to stream responses to the client
+      const stream = new ReadableStream({
+        start(controller) {
+          // Initialize the run with streaming enabled
+          const run = openai.beta.threads.runs.stream(thread.id, {
+            assistant_id: assistantId,
+            stream: true,
+          });
+
+          // Handle 'textCreated' event
+          run.on('textCreated', () => {
+            const data = '\nassistant > ';
+            controller.enqueue(data);
+          });
+
+          // Handle 'textDelta' event
+          run.on('textDelta', (textDelta) => {
+            const data = textDelta.value ?? '';
+            controller.enqueue(data);
+          });
+
+          // Handle 'toolCallCreated' event
+          run.on('toolCallCreated', (toolCall) => {
+            const data = `\nassistant > ${toolCall.type}\n\n`;
+            controller.enqueue(data);
+          });
+
+          // Handle 'toolCallDelta' event
+          run.on('toolCallDelta', (toolCallDelta) => {
+            if (toolCallDelta.type === 'code_interpreter') {
+              if (toolCallDelta.code_interpreter?.input) {
+                const input = toolCallDelta.code_interpreter.input;
+                controller.enqueue(input);
+              }
+              if (toolCallDelta.code_interpreter?.outputs) {
+                const outputHeader = "\noutput >\n";
+                console.log('Streaming output header:', outputHeader); // Server-side log
+                controller.enqueue(outputHeader);
+                toolCallDelta.code_interpreter.outputs.forEach((output) => {
+                  if (output.type === "logs") {
+                    const logs = `\n${output.logs}\n`;
+                    console.log('Streaming logs:', logs); // Server-side log
+                    controller.enqueue(logs);
+                  }
+                });
+              }
+            }
+          });
+
+          // Handle run completion
+          run.on('end', () => {
+            console.log('Streaming completed'); // Server-side log
+            controller.close();
+          });
+
+          // Handle errors
+          run.on('error', (err) => {
+            console.error('Run Error:', err); // Server-side error log
+            controller.error(err);
+          });
+        },
       });
 
-      // Poll for completion
-      let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-      while (runStatus.status !== 'completed') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-      }
-
-      // Retrieve the assistant's messages
-      const messages = await openai.beta.threads.messages.list(thread.id);
-
-      // Get the last message from the assistant
-      const lastMessage = messages.data
-        .filter(msg => msg.role === 'assistant')
-        .pop();
-
-      if (!lastMessage || !lastMessage.content || lastMessage.content.length === 0) {
-        throw new Error('No response from assistant');
-      }
-
-      const messageContent = lastMessage.content[0];
-      
-      if (messageContent.type !== 'text') {
-        throw new Error('Unexpected response type from assistant');
-      }
-
-      return NextResponse.json({ 
-        message: messageContent.text.value,
-        threadId: thread.id
+      // Return the stream as the response with appropriate headers
+      return new NextResponse(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
       });
 
     } catch (openaiError) {
       console.error('OpenAI API error:', openaiError);
-      // ... (error handling remains similar)
+      // Handle OpenAI-specific errors
+      return NextResponse.json(
+        { error: 'Error communicating with OpenAI API' },
+        { status: 500 }
+      );
     }
   } catch (error) {
-    // ... (error handling remains similar)
-  }
-}
-
-export async function GET(req: Request) {
-  try {
-    const apiKey = req.headers.get('Authorization')?.split(' ')[1];
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key is required' }, { status: 401 });
-    }
-
-    const openai = new OpenAI({ apiKey });
-
-    try {
-      // Make a simple API call to check if the key is valid
-      await openai.models.list();
-      return NextResponse.json({ valid: true });
-    } catch (openaiError) {
-      console.error('OpenAI API error during validation:', openaiError);
-
-      if (openaiError instanceof OpenAI.OpenAIError) {
-      if (openaiError.cause) {
-        return NextResponse.json({ valid: false, error: `Invalid API key: ${openaiError.cause}` }, { status: 401 });
-      } else if (openaiError.message) {
-        return NextResponse.json({ valid: false, error: `API key validation failed: ${openaiError.message}` }, { status: 401 });
-      } else {
-        return NextResponse.json({ valid: false, error: 'An unknown error occurred while validating the API key' }, { status: 500 });
-      }
-    }
-  }
-  } catch (error) {
-    console.error('Server error during API key validation:', error);
+    console.error('Server error:', error);
+    // Handle general server errors
     if (error instanceof Error) {
-      return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
+      return NextResponse.json(
+        { error: `Internal Server Error: ${error.message}` },
+        { status: 500 }
+      );
     }
-    return NextResponse.json({ error: 'Internal Server Error: Unknown error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal Server Error: Unknown error' },
+      { status: 500 }
+    );
   }
 }
