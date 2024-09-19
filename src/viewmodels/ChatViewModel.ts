@@ -4,15 +4,15 @@ import { useState, useCallback, useEffect } from 'react';
 
 export function useChatViewModel() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Welcome to MystraIntellect !", sender: "bot" },
+    { id: 1, text: "Welcome to MystraIntellect!", sender: "bot" },
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [isApiKeySet, setIsApiKeySet] = useState(false);
   const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
+  const [error, setError] = useState<string | null>(null);
 
-  // Load API key from localStorage on component mount
   useEffect(() => {
     const storedApiKey = localStorage.getItem('mystraIntellectApiKey');
     if (storedApiKey) {
@@ -44,6 +44,7 @@ export function useChatViewModel() {
 
     addMessage(userMessage);
     setInputMessage('');
+    setError(null);
 
     try {
       const reader = await ChatService.sendMessage(messages.concat(userMessage), apiKey, selectedModel);
@@ -68,25 +69,41 @@ export function useChatViewModel() {
 
       setIsStreaming(false);
     } catch (error) {
-      console.error('Error:', error);
       setIsStreaming(false);
+      if (error instanceof Error) {
+        setError(`Error: ${error.message}`);
+      } else {
+        setError('An unknown error occurred');
+      }
     }
   }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey, selectedModel]);
 
   const validateApiKey = useCallback(async (key: string) => {
-    const isValid = await ChatService.validateApiKey(key);
-    if (isValid) {
-      localStorage.setItem('mystraIntellectApiKey', key);
-      setIsApiKeySet(true);
+    try {
+      const isValid = await ChatService.validateApiKey(key);
+      if (isValid) {
+        localStorage.setItem('mystraIntellectApiKey', key);
+        setIsApiKeySet(true);
+        setError(null);
+      } else {
+        setError('Invalid API key');
+      }
+      return isValid;
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(`Error validating API key: ${error.message}`);
+      } else {
+        setError('An unknown error occurred while validating the API key');
+      }
+      return false;
     }
-    return isValid;
   }, []);
 
-  // Add a function to clear the API key
   const clearApiKey = useCallback(() => {
     localStorage.removeItem('mystraIntellectApiKey');
     setApiKey('');
     setIsApiKeySet(false);
+    setError(null);
   }, []);
 
   return { 
@@ -102,7 +119,9 @@ export function useChatViewModel() {
     validateApiKey,
     clearApiKey, 
     selectedModel, 
-    setSelectedModel 
+    setSelectedModel,
+    error,
+    setError
   };
 }
 

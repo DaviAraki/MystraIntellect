@@ -10,6 +10,10 @@ export async function POST(req: Request) {
 
     const { systemInstruction, messages, model } = await req.json();
 
+    if (!systemInstruction || !messages || !model) {
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    }
+
     const openai = new OpenAI({ apiKey });
 
     const enhancedSystemInstruction = `
@@ -23,33 +27,53 @@ export async function POST(req: Request) {
       - If multiple files are needed, provide them in separate code blocks with their respective filenames.
     `;
 
-    const stream = await openai.chat.completions.create({
-      model: model, // Use the model from the request
-      messages: [
-        { role: "system", content: enhancedSystemInstruction },
-        ...messages
-      ],
-      stream: true,
-      temperature: 0.4, // Adjust for a balance between creativity and precision
-      max_tokens: 1000, // Increase token limit for more detailed responses
-    });
+    try {
+      const stream = await openai.chat.completions.create({
+        model: model,
+        messages: [
+          { role: "system", content: enhancedSystemInstruction },
+          ...messages
+        ],
+        stream: true,
+        temperature: 0.4,
+        max_tokens: 1000,
+      });
 
-    const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(controller) {
-        for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content || '';
-          controller.enqueue(encoder.encode(content));
-        }
-        controller.close();
-      },
-    });
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream({
+        async start(controller) {
+          for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content || '';
+            controller.enqueue(encoder.encode(content));
+          }
+          controller.close();
+        },
+      });
 
-    return new NextResponse(readable, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    });
+      return new NextResponse(readable, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    } catch (openaiError) {
+      console.error('OpenAI API error:', openaiError);
+
+      if (openaiError instanceof OpenAI.OpenAIError) {
+
+      if (openaiError.cause) {
+        return NextResponse.json({ error: `OpenAI API error: ${openaiError.cause}` });
+      } else if (openaiError.message) {
+        return NextResponse.json({ error: `OpenAI API error: ${openaiError.message}` }, { status: 500 });
+      } else {
+        return NextResponse.json({ error: 'An unknown error occurred with the OpenAI API' }, { status: 500 });
+      }
+    }
+  }
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    if (error instanceof Error) {
+      console.error('Server error:', error);
+      return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
+    }
+    console.error('Server error:', error);
+    return NextResponse.json({ error: 'Internal Server Error: Unknown error' }, { status: 500 });
   }
 }
 
@@ -62,15 +86,28 @@ export async function GET(req: Request) {
 
     const openai = new OpenAI({ apiKey });
 
-    // Make a simple API call to check if the key is valid
-    await openai.models.list();
+    try {
+      // Make a simple API call to check if the key is valid
+      await openai.models.list();
+      return NextResponse.json({ valid: true });
+    } catch (openaiError) {
+      console.error('OpenAI API error during validation:', openaiError);
 
-    return NextResponse.json({ valid: true });
-  } catch (error) {
-    if (error instanceof Error && 'response' in error && 
-        typeof error.response === 'object' && error.response && 'status' in error.response) {
-      return NextResponse.json({ valid: false, error: 'Invalid API key' }, { status: 401 });
+      if (openaiError instanceof OpenAI.OpenAIError) {
+      if (openaiError.cause) {
+        return NextResponse.json({ valid: false, error: `Invalid API key: ${openaiError.cause}` }, { status: 401 });
+      } else if (openaiError.message) {
+        return NextResponse.json({ valid: false, error: `API key validation failed: ${openaiError.message}` }, { status: 401 });
+      } else {
+        return NextResponse.json({ valid: false, error: 'An unknown error occurred while validating the API key' }, { status: 500 });
+      }
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+  } catch (error) {
+    console.error('Server error during API key validation:', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error: Unknown error' }, { status: 500 });
   }
 }

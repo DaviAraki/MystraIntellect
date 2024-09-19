@@ -23,7 +23,8 @@ export default function ChatPage() {
     validateApiKey,
     clearApiKey,
     selectedModel,
-    setSelectedModel
+    setSelectedModel,
+    error // Add this line
   } = useChatViewModel();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -130,15 +131,13 @@ export default function ChatPage() {
             />
             <Button 
               onClick={async () => {
-                const isValid = await validateApiKey(apiKey);
-                if (!isValid) {
-                  alert('Invalid API key. Please try again.');
-                }
+                await validateApiKey(apiKey);
               }} 
               disabled={!apiKey.trim()}
             >
               Set API Key
             </Button>
+            {error && <p className="text-red-500 mt-2">{error}</p>} {/* Add this line */}
           </div>
         </div>
       ) : (
@@ -169,6 +168,7 @@ export default function ChatPage() {
               onClose={handleClosePreview}
             />
           )}
+          {error && <p className="text-red-500 absolute bottom-4 left-4">{error}</p>} {/* Add this line */}
         </div>
       )}
       {isApiKeySet && (
