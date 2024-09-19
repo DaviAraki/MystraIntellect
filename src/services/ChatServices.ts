@@ -1,7 +1,6 @@
-import { Message } from "@/types/message";
 
 export class ChatService {
-  static async sendMessage(messages: Message[], apiKey: string, selectedModel: string): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  static async sendMessage(message: string, apiKey: string, assistantId: string, threadId?: string): Promise<{ message: string; threadId: string }> {
     try {
       const response = await fetch('/api/openai', {
         method: 'POST',
@@ -10,12 +9,8 @@ export class ChatService {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          systemInstruction: "You are an expert software developer AI assistant. Your primary focus is on helping with coding, software architecture, best practices, and problem-solving in various programming languages and frameworks.",
-          messages: messages.map(msg => ({
-            role: msg.sender === 'user' ? 'user' : 'assistant',
-            content: msg.text
-          })),
-          model: selectedModel,
+          threadId,
+          message,
         }),
       });
 
@@ -24,7 +19,7 @@ export class ChatService {
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      return response.body!.getReader();
+      return await response.json();
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to send message: ${error.message}`);

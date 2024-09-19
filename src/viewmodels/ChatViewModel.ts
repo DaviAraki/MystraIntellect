@@ -7,10 +7,11 @@ export function useChatViewModel() {
     { id: 1, text: "Welcome to MystraIntellect!", sender: "bot" },
   ]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [isApiKeySet, setIsApiKeySet] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
+  const [assistantId, setAssistantId] = useState<string>('asst_t5SQBj41UAk05cyYtudfE9j0');
+  const [threadId, setThreadId] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,14 +26,6 @@ export function useChatViewModel() {
     setMessages(prevMessages => [...prevMessages, message]);
   }, []);
 
-  const updateLastBotMessage = useCallback((text: string) => {
-    setMessages(prevMessages => 
-      prevMessages.map((msg, index) => 
-        index === prevMessages.length - 1 ? { ...msg, text: msg.text + text } : msg
-      )
-    );
-  }, []);
-
   const sendMessage = useCallback(async () => {
     if (!inputMessage.trim() || !apiKey) return;
 
@@ -45,38 +38,37 @@ export function useChatViewModel() {
     addMessage(userMessage);
     setInputMessage('');
     setError(null);
+    setIsLoading(true);
 
     try {
-      const reader = await ChatService.sendMessage(messages.concat(userMessage), apiKey, selectedModel);
-      const decoder = new TextDecoder();
+      const { message: botResponse, threadId: newThreadId } = await ChatService.sendMessage(
+        inputMessage,
+        apiKey,
+        assistantId,
+        threadId
+      );
+
+      if (!threadId) {
+        setThreadId(newThreadId);
+      }
 
       const botMessage: Message = {
         id: messages.length + 2,
-        text: '',
+        text: botResponse,
         sender: 'bot',
       };
 
       addMessage(botMessage);
-      setIsStreaming(true);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        updateLastBotMessage(chunk);
-      }
-
-      setIsStreaming(false);
     } catch (error) {
-      setIsStreaming(false);
       if (error instanceof Error) {
         setError(`Error: ${error.message}`);
       } else {
         setError('An unknown error occurred');
       }
+    } finally {
+      setIsLoading(false);
     }
-  }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey, selectedModel]);
+  }, [inputMessage, messages, addMessage, apiKey, assistantId, threadId]);
 
   const validateApiKey = useCallback(async (key: string) => {
     try {
@@ -111,15 +103,15 @@ export function useChatViewModel() {
     inputMessage, 
     setInputMessage, 
     sendMessage, 
-    isStreaming, 
+    isLoading, 
     apiKey, 
     setApiKey, 
     isApiKeySet, 
     setIsApiKeySet, 
     validateApiKey,
     clearApiKey, 
-    selectedModel, 
-    setSelectedModel,
+    assistantId, 
+    setAssistantId,
     error,
     setError
   };

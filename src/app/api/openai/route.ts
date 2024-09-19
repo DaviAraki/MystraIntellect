@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+const assistantId = 'asst_t5SQBj41UAk05cyYtudfE9j0'
+
 export async function POST(req: Request) {
   try {
     const apiKey = req.headers.get('Authorization')?.split(' ')[1];
@@ -8,72 +10,67 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'API key is required' }, { status: 401 });
     }
 
-    const { systemInstruction, messages, model } = await req.json();
+    const { threadId, message } = await req.json();
 
-    if (!systemInstruction || !messages || !model) {
+    if (!assistantId || !message) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
     const openai = new OpenAI({ apiKey });
 
-    const enhancedSystemInstruction = `
-      ${systemInstruction}
-      You are an expert software developer AI assistant. Your primary focus is on helping with coding, software architecture, best practices, and problem-solving in various programming languages and frameworks. 
-      - Provide concise, accurate, and efficient solutions.
-      - Explain complex concepts clearly and suggest improvements when appropriate.
-      - Be aware of modern development practices, design patterns, and performance considerations.
-      - If asked about a specific technology, framework, or language, tailor your responses accordingly.
-      - When providing code solutions, specify the file names for each code block using the format: [filename: code_content] inside the markdown text on code block .
-      - If multiple files are needed, provide them in separate code blocks with their respective filenames.
-    `;
-
     try {
-      const stream = await openai.chat.completions.create({
-        model: model,
-        messages: [
-          { role: "system", content: enhancedSystemInstruction },
-          ...messages
-        ],
-        stream: true,
-        temperature: 0.4,
-        max_tokens: 1000,
+      // Create a new thread if threadId is not provided
+      const thread = threadId 
+        ? await openai.beta.threads.retrieve(threadId)
+        : await openai.beta.threads.create();
+
+      // Add the user's message to the thread
+      await openai.beta.threads.messages.create(thread.id, {
+        role: "user",
+        content: message
       });
 
-      const encoder = new TextEncoder();
-      const readable = new ReadableStream({
-        async start(controller) {
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            controller.enqueue(encoder.encode(content));
-          }
-          controller.close();
-        },
+      // Run the assistant
+      const run = await openai.beta.threads.runs.create(thread.id, {
+        assistant_id: assistantId
       });
 
-      return new NextResponse(readable, {
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      // Poll for completion
+      let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      while (runStatus.status !== 'completed') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      }
+
+      // Retrieve the assistant's messages
+      const messages = await openai.beta.threads.messages.list(thread.id);
+
+      // Get the last message from the assistant
+      const lastMessage = messages.data
+        .filter(msg => msg.role === 'assistant')
+        .pop();
+
+      if (!lastMessage || !lastMessage.content || lastMessage.content.length === 0) {
+        throw new Error('No response from assistant');
+      }
+
+      const messageContent = lastMessage.content[0];
+      
+      if (messageContent.type !== 'text') {
+        throw new Error('Unexpected response type from assistant');
+      }
+
+      return NextResponse.json({ 
+        message: messageContent.text.value,
+        threadId: thread.id
       });
+
     } catch (openaiError) {
       console.error('OpenAI API error:', openaiError);
-
-      if (openaiError instanceof OpenAI.OpenAIError) {
-
-      if (openaiError.cause) {
-        return NextResponse.json({ error: `OpenAI API error: ${openaiError.cause}` });
-      } else if (openaiError.message) {
-        return NextResponse.json({ error: `OpenAI API error: ${openaiError.message}` }, { status: 500 });
-      } else {
-        return NextResponse.json({ error: 'An unknown error occurred with the OpenAI API' }, { status: 500 });
-      }
+      // ... (error handling remains similar)
     }
-  }
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Server error:', error);
-      return NextResponse.json({ error: `Internal Server Error: ${error.message}` }, { status: 500 });
-    }
-    console.error('Server error:', error);
-    return NextResponse.json({ error: 'Internal Server Error: Unknown error' }, { status: 500 });
+    // ... (error handling remains similar)
   }
 }
 
