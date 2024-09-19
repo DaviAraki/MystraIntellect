@@ -48,7 +48,8 @@ export function useChatViewModel() {
     setError(null);
 
     try {
-      const stream = await ChatService.sendMessage(inputMessage, apiKey, selectedModel, threadId);
+      const { threadId: newThreadId, stream } = await ChatService.sendMessage(inputMessage, apiKey, selectedModel, threadId);
+      setThreadId(newThreadId);  // Update the threadId state
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
@@ -69,10 +70,7 @@ export function useChatViewModel() {
         updateLastBotMessage(chunk);
       }
 
-
       setIsStreaming(false);
-
-      console.log('stream', stream);
     } catch (error) {
       setIsStreaming(false);
       if (error instanceof Error) {
@@ -126,7 +124,9 @@ export function useChatViewModel() {
     selectedModel, 
     setSelectedModel,
     error,
-    setError
+    setError,
+    threadId,
+    setThreadId
   };
 }
 

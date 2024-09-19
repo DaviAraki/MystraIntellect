@@ -15,6 +15,9 @@ export async function POST(req: Request) {
     // Parse the request body
     const { threadId, message } = await req.json();
 
+    console.log('thread', threadId);
+
+
     // Validate required parameters
     if (!assistantId || !message) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -35,9 +38,13 @@ export async function POST(req: Request) {
         content: message,
       });
 
+
       // Create a ReadableStream to stream responses to the client
       const stream = new ReadableStream({
         start(controller) {
+          // Send the threadId as the first chunk of data
+          controller.enqueue(JSON.stringify({ threadId: thread.id }) + '\n');
+
           // Initialize the run with streaming enabled
           const run = openai.beta.threads.runs.stream(thread.id, {
             assistant_id: assistantId,
@@ -84,13 +91,11 @@ export async function POST(req: Request) {
             }
           });
 
-          // Handle run completion
           run.on('end', () => {
             console.log('Streaming completed'); // Server-side log
             controller.close();
           });
 
-          // Handle errors
           run.on('error', (err) => {
             console.error('Run Error:', err); // Server-side error log
             controller.error(err);
@@ -98,7 +103,6 @@ export async function POST(req: Request) {
         },
       });
 
-      // Return the stream as the response with appropriate headers
       return new NextResponse(stream, {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
@@ -107,7 +111,6 @@ export async function POST(req: Request) {
 
     } catch (openaiError) {
       console.error('OpenAI API error:', openaiError);
-      // Handle OpenAI-specific errors
       return NextResponse.json(
         { error: 'Error communicating with OpenAI API' },
         { status: 500 }
