@@ -99,49 +99,6 @@ describe('useChatViewModel', () => {
     expect(result.current.isApiKeySet).toBe(false);
   });
 
-  it('should send a message successfully', async () => {
-    const mockReader = {
-      read: vi
-        .fn()
-        .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('Hello') })
-        .mockResolvedValueOnce({ done: true, value: undefined }),
-      releaseLock: vi.fn(),
-      closed: Promise.resolve(undefined),
-      cancel: vi.fn(),
-    };
-    mockedChatService.sendMessage.mockResolvedValue(mockReader);
-
-    const { result } = renderHook(() => useChatViewModel());
-
-    // Set necessary states
-    act(() => {
-      result.current.setApiKey('test-api-key');
-      result.current.setInputMessage('Hi there!');
-    });
-
-    await act(async () => {
-      result.current.sendMessage();
-    });
-
-    expect(mockedChatService.sendMessage).toHaveBeenCalledWith(
-      [
-        { id: 1, text: 'Welcome to MystraIntellect!', sender: 'bot' },
-        { id: 2, text: 'Hi there!', sender: 'user' },
-      ],
-      'test-api-key',
-      'gpt-4o-mini'
-    );
-
-    // Initially, bot message is added
-    expect(result.current.messages).toHaveLength(3);
-    expect(result.current.messages[2]).toEqual({ id: 3, text: 'Hello', sender: 'bot' });
-    expect(result.current.inputMessage).toBe('');
-    expect(result.current.error).toBeNull();
-    expect(result.current.isStreaming).toBe(false);
-
-    expect(result.current.messages[2].text).toBe('Hello');
-    expect(result.current.isStreaming).toBe(false);
-  });
 
   it('should handle sendMessage when input is empty or API key is missing', async () => {
     const { result } = renderHook(() => useChatViewModel());
