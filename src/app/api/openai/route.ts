@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 500;
+
 
 
 // Your Assistant ID
