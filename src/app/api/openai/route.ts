@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+
+export const dynamic = 'force-dynamic';
+
+
 // Your Assistant ID
 const assistantId = 'asst_D57MSz1nKza4D1M4WZEh5v1A';
 
