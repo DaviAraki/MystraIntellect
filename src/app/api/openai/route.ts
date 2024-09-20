@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 // Your Assistant ID
-const assistantId = 'asst_t5SQBj41UAk05cyYtudfE9j0';
+const assistantId = 'asst_D57MSz1nKza4D1M4WZEh5v1A';
 
 export async function POST(req: Request) {
   try {
