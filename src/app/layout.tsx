@@ -15,8 +15,20 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Mystra Intellect",
-  description: "AI Assistant for developers",
+  title: "MystraIntellect - AI-Powered Developer Assistant",
+  description: "Get expert coding help and software development advice with MystraIntellect, an AI-powered assistant for programmers.",
+  keywords: "AI, developer assistant, coding help, programming, software development",
+  openGraph: {
+    title: "MystraIntellect - AI-Powered Developer Assistant",
+    description: "Expert coding help and software development advice with AI",
+    images: [{ url: "/og-image.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MystraIntellect - AI-Powered Developer Assistant",
+    description: "Expert coding help and software development advice with AI",
+    images: ["/twitter-image.png"],
+  },
 };
 
 export default function RootLayout({
@@ -33,4 +45,20 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
+};
+
+<script type="application/ld+json">
+  {JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "MystraIntellect",
+    "applicationCategory": "DeveloperApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "operatingSystem": "Web",
+    "description": "AI-powered developer assistant for coding help and software development advice"
+  })}
+</script>
