@@ -49,7 +49,7 @@ export function useChatViewModel() {
 
     try {
       const { threadId: newThreadId, stream } = await ChatService.sendMessage(inputMessage, apiKey, selectedModel, threadId);
-      setThreadId(newThreadId);  // Update the threadId state
+      setThreadId(newThreadId)
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 

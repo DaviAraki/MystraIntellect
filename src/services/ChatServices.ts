@@ -68,7 +68,7 @@ export class ChatService {
 
   static async validateApiKey(apiKey: string): Promise<boolean> {
     try {
-      const response = await fetch('/api/openai', {
+      const response = await fetch('/api/openai/validate-key', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,

@@ -122,6 +122,10 @@ export default function ChatPage() {
       {!isApiKeySet ? (
         <div className="flex-grow flex items-center justify-center">
           <div className="w-full max-w-md p-4">
+            <p className="mb-2 text-sm text-gray-400">
+              Your API key is stored locally in your browser and is never sent to our servers. 
+              We use it only to communicate directly with OpenAI on your behalf.
+            </p>
             <Input
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
