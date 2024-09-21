@@ -1,81 +1,75 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-
-
-// Your Assistant ID
-const assistantId = 'asst_D57MSz1nKza4D1M4WZEh5v1A';
-
 export async function POST(req: Request) {
   try {
-    // Extract API Key from Authorization header
     const apiKey = req.headers.get('Authorization')?.split(' ')[1];
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is required' }, { status: 401 });
     }
 
-    // Parse the request body
     const { threadId, message } = await req.json();
 
-    console.log('thread', threadId);
-
-
-    // Validate required parameters
-    if (!assistantId || !message) {
+    if (!message) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
-
-    // Initialize OpenAI with the provided API key
     const openai = new OpenAI({ apiKey });
 
+    const myAssistant = await openai.beta.assistants.create({
+      instructions:`
+        " You are an expert software developer AI assistant. Your primary focus is on helping with coding, software architecture, best practices, and problem-solving in various programming languages and frameworks. 
+          - Provide concise, accurate, and efficient solutions.
+          - Explain complex concepts clearly and suggest improvements when appropriate.
+          - Be aware of modern development practices, design patterns, and performance considerations.
+          - If asked about a specific technology, framework, or language, tailor your responses accordingly.
+          - When providing code solutions, specify the file names for each code block using the format: [filename: code_content] inside the markdown text on code block.
+          - If multiple files are needed, provide them in separate code blocks with their respective filenames.
+          - Follow the rules of clean code, dry, kiss and SOLID principles.
+          `,
+      name: "Mystra",
+      tools: [{ type: "code_interpreter" }],
+      model: "gpt-4o",
+    });
+
+
     try {
-      // Create or retrieve a thread based on threadId
       const thread = threadId
         ? await openai.beta.threads.retrieve(threadId)
         : await openai.beta.threads.create();
 
-      // Add the user's message to the thread
       await openai.beta.threads.messages.create(thread.id, {
         role: "user",
         content: message,
       });
 
 
-      // Create a ReadableStream to stream responses to the client
       const stream = new ReadableStream({
         start(controller) {
-          // Send the threadId as the first chunk of data
           controller.enqueue(JSON.stringify({ threadId: thread.id }) + '\n');
 
-          // Initialize the run with streaming enabled
           const run = openai.beta.threads.runs.stream(thread.id, {
-            assistant_id: assistantId,
+            assistant_id: myAssistant.id,
             stream: true,
           });
 
-          // Handle 'textCreated' event
           run.on('textCreated', () => {
             const data = '\nassistant > ';
             controller.enqueue(data);
           });
 
-          // Handle 'textDelta' event
           run.on('textDelta', (textDelta) => {
             const data = textDelta.value ?? '';
             controller.enqueue(data);
           });
 
-          // Handle 'toolCallCreated' event
           run.on('toolCallCreated', (toolCall) => {
             const data = `\nassistant > ${toolCall.type}\n\n`;
             controller.enqueue(data);
           });
 
-          // Handle 'toolCallDelta' event
           run.on('toolCallDelta', (toolCallDelta) => {
             if (toolCallDelta.type === 'code_interpreter') {
               if (toolCallDelta.code_interpreter?.input) {
@@ -84,12 +78,12 @@ export async function POST(req: Request) {
               }
               if (toolCallDelta.code_interpreter?.outputs) {
                 const outputHeader = "\noutput >\n";
-                console.log('Streaming output header:', outputHeader); // Server-side log
+                console.log('Streaming output header:', outputHeader); 
                 controller.enqueue(outputHeader);
                 toolCallDelta.code_interpreter.outputs.forEach((output) => {
                   if (output.type === "logs") {
                     const logs = `\n${output.logs}\n`;
-                    console.log('Streaming logs:', logs); // Server-side log
+                    console.log('Streaming logs:', logs); 
                     controller.enqueue(logs);
                   }
                 });
@@ -98,12 +92,12 @@ export async function POST(req: Request) {
           });
 
           run.on('end', () => {
-            console.log('Streaming completed'); // Server-side log
+            console.log('Streaming completed'); 
             controller.close();
           });
 
           run.on('error', (err) => {
-            console.error('Run Error:', err); // Server-side error log
+            console.error('Run Error:', err); 
             controller.error(err);
           });
         },
@@ -124,7 +118,6 @@ export async function POST(req: Request) {
     }
   } catch (error) {
     console.error('Server error:', error);
-    // Handle general server errors
     if (error instanceof Error) {
       return NextResponse.json(
         { error: `Internal Server Error: ${error.message}` },
