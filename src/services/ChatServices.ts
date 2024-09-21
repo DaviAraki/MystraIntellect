@@ -5,9 +5,8 @@ export class ChatService {
     selectedModel: string,
     threadId?: string
   ): Promise<{ threadId: string; stream: ReadableStream<Uint8Array> }> {
-    console.log('threadId', threadId);
     try {
-      const response = await fetch('/api/openai', {
+      const response = await fetch('/api/openai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'API key is required' }, { status: 401 });
     }
 
-    const { threadId, message } = await req.json();
+    const { threadId, message, model } = await req.json();
 
     if (!message) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -25,13 +25,13 @@ export async function POST(req: Request) {
           - Explain complex concepts clearly and suggest improvements when appropriate.
           - Be aware of modern development practices, design patterns, and performance considerations.
           - If asked about a specific technology, framework, or language, tailor your responses accordingly.
-          - When providing code solutions, specify the file names for each code block using the format: [filename: code_content] inside the markdown text on code block.
+          - When providing code solutions, specify the file names for each code block using the format: [filename: file  name] inside the markdown text on code block.
           - If multiple files are needed, provide them in separate code blocks with their respective filenames.
           - Follow the rules of clean code, dry, kiss and SOLID principles.
           `,
       name: "Mystra",
       tools: [{ type: "code_interpreter" }],
-      model: "gpt-4o",
+      model: model ?? "gpt-4o-mini",
     });
 
 
