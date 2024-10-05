@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
-interface CodePreviewProps {
+interface LivePreviewProps {
   files: Record<string, { content: string }>;
   onClose: () => void;
 }
 
-export function CodePreview({ files, onClose }: CodePreviewProps) {
+export function LivePreview({ files, onClose }: LivePreviewProps) {
   const [sandboxId, setSandboxId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   console.log('files', files);
@@ -27,9 +27,9 @@ export function CodePreview({ files, onClose }: CodePreviewProps) {
             description: "React sandbox",
             main: "src/index.js",
             dependencies: {
-              react: "^17.0.2",
-              "react-dom": "^17.0.2",
-              "react-scripts": "4.0.3"
+              react: "^18.3.1",
+              "react-dom": "^18.3.1",
+              "react-scripts": "5.0.1"
             },
             scripts: {
               start: "react-scripts start",

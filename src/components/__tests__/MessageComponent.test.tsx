@@ -3,11 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { MessageComponent } from '../MessageComponent';
 import { Message } from '@/types/message';
-import { useCodePreview } from '@/hooks/useCodePreview';
+import { useLivePreview } from '@/hooks/useLivePreview';
 
-// Mock the useCodePreview hook
-vi.mock('@/hooks/useCodePreview', () => ({
-  useCodePreview: vi.fn(
+// Mock the useLivePreview hook
+vi.mock('@/hooks/useLivePreview', () => ({
+  useLivePreview: vi.fn(
     () => ({
       handlePreviewCode: vi.fn(),
       hasCode: false,
@@ -33,7 +33,7 @@ describe('MessageComponent', () => {
   it('renders code block and preview button for bot message with code', () => {
     const message: Message = { sender: 'bot', text: '```js\nconsole.log("Hello, world!");\n```', id: 1 };
     const mockHandlePreviewCode = vi.fn().mockReturnValue({ 'file.js': { content: 'console.log("Hello, world!");' } });
-    vi.mocked(useCodePreview).mockReturnValue({ handlePreviewCode: mockHandlePreviewCode, hasCode: true });
+    vi.mocked(useLivePreview).mockReturnValue({ handlePreviewCode: mockHandlePreviewCode, hasCode: true });
     render(<MessageComponent message={message} onPreviewCode={vi.fn()} />);
 
     expect(screen.getByText('console')).toBeDefined();
@@ -46,7 +46,7 @@ describe('MessageComponent', () => {
     const message: Message = { sender: 'bot', text: '```js\nconsole.log("Hello, world!");\n```', id: 1 };
     const mockHandlePreviewCode = vi.fn().mockReturnValue({ 'file.js': { content: 'console.log("Hello, world!");' } });
     const mockOnPreviewCode = vi.fn();
-    vi.mocked(useCodePreview).mockReturnValue({ handlePreviewCode: mockHandlePreviewCode, hasCode: true });
+    vi.mocked(useLivePreview).mockReturnValue({ handlePreviewCode: mockHandlePreviewCode, hasCode: true });
 
     render(<MessageComponent message={message} onPreviewCode={mockOnPreviewCode} />);
 

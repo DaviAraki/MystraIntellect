@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatViewModel } from "@/viewmodels/ChatViewModel";
 import { MessageComponent } from '@/components/MessageComponent';
 import { InputArea } from '@/components/InputArea';
-import { CodePreview } from '@/components/CodePreview'; // Add this import
+import { LivePreview } from '@/components/LivePreview'; // Add this import
 import { Button } from "@/components/ui/button"; // Add this import
 import { Input } from "@/components/ui/input"; // Add this import
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -167,7 +167,7 @@ export default function ChatPage() {
             </Button>
           )}
           {previewFiles && (
-            <CodePreview 
+            <LivePreview 
               files={previewFiles}
               onClose={handleClosePreview}
             />
