@@ -1,21 +1,22 @@
+import { useState, useCallback, useEffect } from 'react';
 import { ChatService } from '@/services/ChatServices';
 import { Message } from '@/types/message';
-import { useState, useCallback, useEffect } from 'react';
+import { CONFIG } from '@/config/constants';
 
 export function useChatViewModel() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Welcome to MystraIntellect!", sender: "bot" },
+    { id: 1, text: CONFIG.UI.DEFAULT_BOT_MESSAGE, sender: 'bot' }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [isApiKeySet, setIsApiKeySet] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState<string>(CONFIG.MODELS.GPT4_MINI);
   const [error, setError] = useState<string | null>(null);
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const storedApiKey = localStorage.getItem('mystraIntellectApiKey');
+    const storedApiKey = localStorage.getItem(CONFIG.STORAGE.API_KEY);
     if (storedApiKey) {
       setApiKey(storedApiKey);
       setIsApiKeySet(true);
@@ -48,8 +49,14 @@ export function useChatViewModel() {
     setError(null);
 
     try {
-      const { threadId: newThreadId, stream } = await ChatService.sendMessage(inputMessage, apiKey, selectedModel, threadId);
-      setThreadId(newThreadId)
+      const chatService = new ChatService(apiKey);
+      const { threadId: newThreadId, stream } = await chatService.sendMessage(
+        inputMessage,
+        selectedModel,
+        threadId
+      );
+      
+      setThreadId(newThreadId);
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
@@ -69,15 +76,10 @@ export function useChatViewModel() {
         const chunk = decoder.decode(value, { stream: true });
         updateLastBotMessage(chunk);
       }
-
-      setIsStreaming(false);
     } catch (error) {
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+    } finally {
       setIsStreaming(false);
-      if (error instanceof Error) {
-        setError(`Error: ${error.message}`);
-      } else {
-        setError('An unknown error occurred');
-      }
     }
   }, [inputMessage, messages, addMessage, updateLastBotMessage, apiKey, selectedModel, threadId]);
 
@@ -85,7 +87,8 @@ export function useChatViewModel() {
     try {
       const isValid = await ChatService.validateApiKey(key);
       if (isValid) {
-        localStorage.setItem('mystraIntellectApiKey', key);
+        localStorage.setItem(CONFIG.STORAGE.API_KEY, key);
+        setApiKey(key);
         setIsApiKeySet(true);
         setError(null);
       } else {
@@ -93,35 +96,31 @@ export function useChatViewModel() {
       }
       return isValid;
     } catch (error) {
-      if (error instanceof Error) {
-        setError(`Error validating API key: ${error.message}`);
-      } else {
-        setError('An unknown error occurred while validating the API key');
-      }
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
       return false;
     }
   }, []);
 
   const clearApiKey = useCallback(() => {
-    localStorage.removeItem('mystraIntellectApiKey');
+    localStorage.removeItem(CONFIG.STORAGE.API_KEY);
     setApiKey('');
     setIsApiKeySet(false);
     setError(null);
   }, []);
 
-  return { 
-    messages, 
-    inputMessage, 
-    setInputMessage, 
-    sendMessage, 
-    isStreaming, 
-    apiKey, 
-    setApiKey, 
-    isApiKeySet, 
-    setIsApiKeySet, 
+  return {
+    messages,
+    inputMessage,
+    setInputMessage,
+    sendMessage,
+    isStreaming,
+    apiKey,
+    setApiKey,
+    isApiKeySet,
+    setIsApiKeySet,
     validateApiKey,
-    clearApiKey, 
-    selectedModel, 
+    clearApiKey,
+    selectedModel,
     setSelectedModel,
     error,
     setError,
