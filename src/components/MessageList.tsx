@@ -1,0 +1,42 @@
+import React, { useRef, useEffect } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { MessageComponent } from './MessageComponent';
+import { Message } from '@/types/message';
+import { LoadingSpinner } from './ui/LoadingSpinner';
+
+interface MessageListProps {
+  messages: Message[];
+  isStreaming: boolean;
+  onPreviewCode: (files: Record<string, { content: string }>) => void;
+}
+
+export function MessageList({ messages, isStreaming, onPreviewCode }: MessageListProps) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  return (
+    <ScrollArea className="flex-grow" ref={scrollAreaRef}>
+      <div className="p-4 space-y-4">
+        {messages.map((message) => (
+          <MessageComponent
+            key={message.id}
+            message={message}
+            onPreviewCode={onPreviewCode}
+          />
+        ))}
+        {isStreaming && (
+          <div className="flex justify-center">
+            <LoadingSpinner size="sm" />
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+    </ScrollArea>
+  );
+}
