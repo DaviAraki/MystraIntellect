@@ -10,7 +10,6 @@ export async function GET(req: Request) {
 
     const openai = new OpenAI({ apiKey });
 
-    // Make a simple API call to check if the key is valid
     await openai.models.list();
 
     return NextResponse.json({ valid: true });
