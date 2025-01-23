@@ -7,14 +7,9 @@ import { LoadingSpinner } from './ui/LoadingSpinner'
 interface MessageListProps {
   messages: Message[]
   isStreaming: boolean
-  onPreviewCode: (files: Record<string, { content: string }>) => void
 }
 
-export function MessageList({
-  messages,
-  isStreaming,
-  onPreviewCode,
-}: MessageListProps) {
+export function MessageList({ messages, isStreaming }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
@@ -42,11 +37,7 @@ export function MessageList({
     <ScrollArea className='flex-grow overflow-y-auto' ref={scrollAreaRef}>
       <div className='p-4 space-y-4'>
         {messages.map((message) => (
-          <MessageComponent
-            key={message.id}
-            message={message}
-            onPreviewCode={onPreviewCode}
-          />
+          <MessageComponent key={message.id} message={message} />
         ))}
         {isStreaming && (
           <div className='flex justify-center'>
@@ -58,4 +49,3 @@ export function MessageList({
     </ScrollArea>
   )
 }
-

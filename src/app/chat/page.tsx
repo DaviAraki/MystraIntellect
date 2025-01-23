@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MessageList } from '@/components/MessageList'
 import { useChatViewModel } from '@/viewmodels/ChatViewModel'
-import { LivePreview } from '@/components/LivePreview'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import {
   Select,
@@ -37,11 +36,6 @@ export default function ChatPage() {
     deleteChat,
     setIsStreaming,
   } = useChatViewModel()
-
-  const [previewFiles, setPreviewFiles] = useState<Record<
-    string,
-    { content: string }
-  > | null>(null)
 
   const [editingChatId, setEditingChatId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
@@ -174,17 +168,9 @@ export default function ChatPage() {
         </header>
 
         <div className='flex-grow flex'>
-          <div
-            className={`flex-grow flex flex-col ${
-              previewFiles ? 'w-1/2' : 'w-full'
-            }`}
-          >
+          <div className='flex-grow flex flex-col w-full'>
             <ErrorBoundary>
-              <MessageList
-                messages={messages}
-                isStreaming={isStreaming}
-                onPreviewCode={setPreviewFiles}
-              />
+              <MessageList messages={messages} isStreaming={isStreaming} />
               <form
                 onSubmit={handleSend}
                 className='p-4 border-t border-gray-800'
@@ -210,13 +196,6 @@ export default function ChatPage() {
               </form>
             </ErrorBoundary>
           </div>
-
-          {previewFiles && (
-            <LivePreview
-              files={previewFiles}
-              onClose={() => setPreviewFiles(null)}
-            />
-          )}
         </div>
       </div>
     </div>
