@@ -189,7 +189,6 @@ export default function ChatPage() {
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     placeholder='Type your message...'
-                    disabled={isStreaming}
                     className='flex-grow'
                   />
                   <Button

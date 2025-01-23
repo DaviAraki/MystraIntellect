@@ -69,8 +69,9 @@ export function useChatViewModel() {
 
   const handleSendMessage = useCallback(async () => {
     if (inputMessage.trim()) {
-      await sendMessage(inputMessage, selectedModel)
-      setInputMessage('')
+      const messageToSend = inputMessage
+      setInputMessage('') // Clear input immediately
+      await sendMessage(messageToSend, selectedModel)
     }
   }, [inputMessage, selectedModel, sendMessage, setInputMessage])
 

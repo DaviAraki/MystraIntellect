@@ -91,18 +91,18 @@ export function MessageComponent({
   }
 
   return (
-    <div className='mb-4 flex items-start'>
+    <div className='mb-4 flex items-start max-w-[1200px] mx-auto w-full'>
       {message.sender === 'user' ? (
-        <User className='mr-2 h-6 w-6 text-green-400' />
+        <User className='mr-2 h-6 w-6 text-green-400 flex-shrink-0' />
       ) : (
-        <Bot className='mr-2 h-6 w-6 text-green-400' />
+        <Bot className='mr-2 h-6 w-6 text-green-400 flex-shrink-0' />
       )}
-      <div className='bg-gray-900 rounded p-2 max-w-[80%]'>
+      <div className='bg-gray-900 rounded p-4 flex-1 overflow-hidden'>
         {message.sender === 'user' ? (
-          <p>{message.text}</p>
+          <p className='whitespace-pre-wrap break-words'>{message.text}</p>
         ) : (
           <ReactMarkdown
-            className='prose prose-invert max-w-none'
+            className='prose prose-invert max-w-none whitespace-pre-wrap break-words'
             components={{
               code: ({ className, children, ...props }) =>
                 CodeBlock({ className, children, ...props }),
@@ -115,7 +115,7 @@ export function MessageComponent({
         {hasCode && (
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogTrigger asChild>
-              <Button className='mt-2'>View Extracted Files</Button>
+              <Button className='mt-4'>View Extracted Files</Button>
             </DialogTrigger>
             <DialogContent className='sm:max-w-[90vw] sm:max-h-[90vh] overflow-y-auto crisp-rendering bg-gray-900 text-gray-100'>
               <DialogHeader>
