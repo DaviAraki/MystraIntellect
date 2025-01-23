@@ -1,91 +1,110 @@
-import { CONFIG } from '@/config/constants';
+import { CONFIG } from '@/config/constants'
 
 export class ChatService {
-  private apiKey: string;
+  private apiKey: string
 
   constructor(apiKey: string) {
-    this.apiKey = apiKey;
+    this.apiKey = apiKey
   }
 
   async sendMessage(message: string, model: string, threadId?: string) {
-    const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.ENDPOINTS.CHAT}`, {
+    const assistantId = localStorage.getItem(CONFIG.STORAGE.ASSISTANT_ID)
+
+    const response = await fetch('/api/openai/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
+        'X-Assistant-Id': assistantId || '',
       },
-      body: JSON.stringify({ threadId, message, model }),
-    });
+      body: JSON.stringify({
+        message,
+        model,
+        threadId,
+      }),
+    })
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to send message')
     }
 
-    return this.handleStreamResponse(response);
-  }
-
-  private async handleStreamResponse(response: Response) {
-    if (!response.body) {
-      throw new Error('Response body is null');
+    const stream = response.body
+    if (!stream) {
+      throw new Error('No response stream received')
     }
 
-    const reader = response.body.getReader();
-    const { value, done } = await reader.read();
-    
-    if (done) {
-      throw new Error('Stream ended unexpectedly');
-    }
+    // Get threadId from the first line of the stream
+    const reader = stream.getReader()
+    const decoder = new TextDecoder()
+    const { value, done } = await reader.read()
+    if (done) throw new Error('Stream ended unexpectedly')
 
-    return this.processStreamResponse(reader, value);
-  }
-
-  private async processStreamResponse(reader: ReadableStreamDefaultReader<Uint8Array>, initialValue: Uint8Array) {
-    const decoder = new TextDecoder();
-    const firstChunk = decoder.decode(initialValue);
-    const [threadIdJson, ...restOfChunk] = firstChunk.split('\n');
-    const { threadId: newThreadId } = JSON.parse(threadIdJson);
+    const firstLine = decoder.decode(value).split('\n')[0]
+    const { threadId: newThreadId } = JSON.parse(firstLine)
 
     return {
       threadId: newThreadId,
-      stream: this.createResponseStream(reader, restOfChunk)
-    };
+      stream: new ReadableStream({
+        start(controller) {
+          controller.enqueue(value)
+          reader
+            .read()
+            .then(function processText({
+              done,
+              value,
+            }: ReadableStreamReadResult<Uint8Array>): Promise<void> | void {
+              if (done) {
+                controller.close()
+                return
+              }
+              controller.enqueue(value)
+              return reader.read().then(processText)
+            })
+        },
+        cancel() {
+          reader.cancel()
+        },
+      }),
+    }
   }
 
-  private createResponseStream(reader: ReadableStreamDefaultReader<Uint8Array>, initialChunk: string[]) {
-    return new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(initialChunk.join('\n')));
+  async getThreadHistory(threadId: string) {
+    const response = await fetch(`/api/openai/chat?threadId=${threadId}`, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
       },
-      async pull(controller) {
-        const { value, done } = await reader.read();
-        if (done) {
-          controller.close();
-        } else {
-          controller.enqueue(value);
-        }
-      },
-    });
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to load thread history')
+    }
+
+    return response.json()
   }
 
   static async validateApiKey(apiKey: string): Promise<boolean> {
     try {
-      const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.ENDPOINTS.VALIDATE_KEY}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-        },
-      });
+      const response = await fetch(
+        `${CONFIG.API.BASE_URL}${CONFIG.API.ENDPOINTS.VALIDATE_KEY}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      )
 
       if (!response.ok) {
-        return false;
+        return false
       }
 
-      const data = await response.json();
-      return data.valid;
+      const data = await response.json()
+      return data.valid
     } catch (error) {
-      console.error('Error validating API key:', error);
-      return false;
+      console.error('Error validating API key:', error)
+      return false
     }
   }
 }

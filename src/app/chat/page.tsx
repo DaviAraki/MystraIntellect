@@ -21,15 +21,20 @@ export default function ChatPage() {
     messages,
     inputMessage,
     setInputMessage,
-    sendMessage,
+    handleSendMessage,
     isStreaming,
-    apiKey,
     isApiKeySet,
-    validateApiKey,
+    validateAndSetApiKey,
     clearApiKey,
     selectedModel,
     setSelectedModel,
     error,
+    chats,
+    activeChatId,
+    switchChat,
+    createNewChat,
+    renameChat,
+    deleteChat,
   } = useChatViewModel()
 
   const [previewFiles, setPreviewFiles] = useState<Record<
@@ -37,9 +42,13 @@ export default function ChatPage() {
     { content: string }
   > | null>(null)
 
+  const [editingChatId, setEditingChatId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
+  const [apiKeyInput, setApiKeyInput] = useState('')
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    await sendMessage()
+    await handleSendMessage()
   }
 
   if (!isApiKeySet) {
@@ -51,8 +60,11 @@ export default function ChatPage() {
             our servers.
           </p>
           <Input
-            value={apiKey}
-            onChange={(e) => validateApiKey(e.target.value)}
+            value={apiKeyInput}
+            onChange={(e) => {
+              setApiKeyInput(e.target.value)
+              validateAndSetApiKey(e.target.value)
+            }}
             placeholder='Enter your OpenAI API key'
             type='password'
             className='mb-4'
@@ -64,72 +76,134 @@ export default function ChatPage() {
   }
 
   return (
-    <div className='flex flex-col h-screen bg-black text-green-400 font-mono'>
-      <header className='p-4 border-b border-gray-800 flex justify-between items-center'>
-        <div className='flex items-center gap-4'>
-          <h1 className='text-2xl font-bold'>MystraIntellect</h1>
-          <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger className='w-[180px]'>
-              <SelectValue placeholder='Select model' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={CONFIG.MODELS.GPT4_MINI}>
-                GPT-4 Mini
-              </SelectItem>
-              <SelectItem value={CONFIG.MODELS.GPT4}>GPT-4</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className='flex h-screen bg-black text-green-400 font-mono'>
+      {/* Chat List Sidebar */}
+      <div className='w-64 border-r border-gray-800 flex flex-col'>
+        <div className='p-4 border-b border-gray-800'>
+          <Button onClick={createNewChat} className='w-full'>
+            New Chat
+          </Button>
         </div>
-        <Button
-          onClick={clearApiKey}
-          className='bg-red-600 hover:bg-red-700 text-white'
-        >
-          Clear API Key
-        </Button>
-      </header>
-
-      <div className='flex-grow flex'>
-        <div
-          className={`flex-grow flex flex-col ${
-            previewFiles ? 'w-1/2' : 'w-full'
-          }`}
-        >
-          <ErrorBoundary>
-            <MessageList
-              messages={messages}
-              isStreaming={isStreaming}
-              onPreviewCode={setPreviewFiles}
-            />
-            <form
-              onSubmit={handleSend}
-              className='p-4 border-t border-gray-800'
+        <div className='flex-1 overflow-y-auto'>
+          {chats.map((chat) => (
+            <div
+              key={chat.id}
+              className={`flex items-center justify-between p-2 hover:bg-gray-800 ${
+                chat.id === activeChatId ? 'bg-gray-800' : ''
+              }`}
             >
-              <div className='flex gap-2'>
+              {chat.id === editingChatId ? (
                 <Input
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder='Type your message...'
-                  disabled={isStreaming}
-                  className='flex-grow'
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onBlur={() => {
+                    renameChat(chat.id, editingName)
+                    setEditingChatId(null)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      renameChat(chat.id, editingName)
+                      setEditingChatId(null)
+                    }
+                    if (e.key === 'Escape') {
+                      setEditingChatId(null)
+                    }
+                  }}
+                  autoFocus
+                  className='flex-1 mr-2'
                 />
-                <Button
-                  type='submit'
-                  disabled={isStreaming || !inputMessage.trim()}
+              ) : (
+                <button
+                  onClick={() => switchChat(chat.id)}
+                  className='flex-1 text-left truncate'
+                  onDoubleClick={() => {
+                    setEditingChatId(chat.id)
+                    setEditingName(chat.name)
+                  }}
                 >
-                  Send
-                </Button>
-              </div>
-              {error && <p className='text-red-500 mt-2 text-sm'>{error}</p>}
-            </form>
-          </ErrorBoundary>
+                  {chat.name}
+                </button>
+              )}
+              <Button
+                onClick={() => deleteChat(chat.id)}
+                className='px-2 py-1 bg-red-600 hover:bg-red-700'
+                size='sm'
+              >
+                ×
+              </Button>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {previewFiles && (
-          <LivePreview
-            files={previewFiles}
-            onClose={() => setPreviewFiles(null)}
-          />
-        )}
+      {/* Main Chat Area with left margin to account for fixed sidebar */}
+      <div className='flex-1 flex flex-col'>
+        <header className='p-4 border-b border-gray-800 flex justify-between items-center'>
+          <div className='flex items-center gap-4'>
+            <h1 className='text-2xl font-bold'>MystraIntellect</h1>
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger className='w-[180px]'>
+                <SelectValue placeholder='Select model' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={CONFIG.MODELS.GPT4_MINI}>
+                  GPT-4 Mini
+                </SelectItem>
+                <SelectItem value={CONFIG.MODELS.GPT4}>GPT-4</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            onClick={clearApiKey}
+            className='bg-red-600 hover:bg-red-700 text-white'
+          >
+            Clear API Key
+          </Button>
+        </header>
+
+        <div className='flex-grow flex'>
+          <div
+            className={`flex-grow flex flex-col ${
+              previewFiles ? 'w-1/2' : 'w-full'
+            }`}
+          >
+            <ErrorBoundary>
+              <MessageList
+                messages={messages}
+                isStreaming={isStreaming}
+                onPreviewCode={setPreviewFiles}
+              />
+              <form
+                onSubmit={handleSend}
+                className='p-4 border-t border-gray-800'
+              >
+                <div className='flex gap-2'>
+                  <Input
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder='Type your message...'
+                    disabled={isStreaming}
+                    className='flex-grow'
+                  />
+                  <Button
+                    type='submit'
+                    disabled={isStreaming || !inputMessage.trim()}
+                  >
+                    Send
+                  </Button>
+                </div>
+                {error && <p className='text-red-500 mt-2 text-sm'>{error}</p>}
+              </form>
+            </ErrorBoundary>
+          </div>
+
+          {previewFiles && (
+            <LivePreview
+              files={previewFiles}
+              onClose={() => setPreviewFiles(null)}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

@@ -1,49 +1,126 @@
-import { useState, useCallback } from 'react';
-import { useApiKey } from '@/hooks/useApiKey';
-import { useChat } from '@/hooks/useChat';
-import { CONFIG } from '@/config/constants';
+import { useState, useCallback, useEffect } from 'react'
+import { useApiKey } from '@/hooks/useApiKey'
+import { useChat } from '@/hooks/useChat'
+import { CONFIG } from '@/config/constants'
+
+interface Chat {
+  id: string
+  name: string
+  threadId?: string
+}
 
 export function useChatViewModel() {
-  const [inputMessage, setInputMessage] = useState('');
-  const [selectedModel, setSelectedModel] = useState<string>(CONFIG.MODELS.GPT4_MINI);
-  
-  const { 
-    apiKey, 
-    isApiKeySet, 
-    error: apiKeyError, 
-    validateAndSetApiKey, 
-    clearApiKey 
-  } = useApiKey();
+  const [chats, setChats] = useState<Chat[]>(() => {
+    if (typeof window !== 'undefined') {
+      const savedChats = localStorage.getItem(CONFIG.STORAGE.CHATS)
+      return savedChats
+        ? JSON.parse(savedChats)
+        : [{ id: '1', name: 'New Chat' }]
+    }
+    return [{ id: '1', name: 'New Chat' }]
+  })
+
+  const [inputMessage, setInputMessage] = useState('')
+  const [selectedModel, setSelectedModel] = useState<string>(
+    CONFIG.MODELS.GPT4_MINI
+  )
+
+  const {
+    apiKey,
+    isApiKeySet,
+    error: apiKeyError,
+    validateAndSetApiKey,
+    clearApiKey,
+  } = useApiKey()
 
   const {
     messages,
     isStreaming,
     sendMessage,
     error: chatError,
-    threadId
-  } = useChat(apiKey);
+    loadThreadHistory,
+    setActiveChatId,
+    activeChatId,
+    clearMessages,
+  } = useChat(apiKey)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CONFIG.STORAGE.CHATS, JSON.stringify(chats))
+    }
+  }, [chats])
+
+  const createNewChat = useCallback(() => {
+    const newChat: Chat = {
+      id: Date.now().toString(),
+      name: 'New Chat',
+    }
+    setChats((prev) => [...prev, newChat])
+    setActiveChatId(newChat.id)
+    clearMessages(newChat.id)
+  }, [setActiveChatId, clearMessages])
 
   const handleSendMessage = useCallback(async () => {
     if (inputMessage.trim()) {
-      await sendMessage(inputMessage, selectedModel);
-      setInputMessage('');
+      await sendMessage(inputMessage, selectedModel)
+      setInputMessage('')
     }
-  }, [inputMessage, selectedModel, sendMessage]);
+  }, [inputMessage, selectedModel, sendMessage])
+
+  const switchChat = useCallback(
+    (chatId: string) => {
+      setActiveChatId(chatId)
+      loadThreadHistory(chatId)
+    },
+    [setActiveChatId, loadThreadHistory]
+  )
+
+  const renameChat = useCallback((chatId: string, newName: string) => {
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === chatId
+          ? { ...chat, name: newName.trim() || 'Untitled Chat' }
+          : chat
+      )
+    )
+  }, [])
+
+  const deleteChat = useCallback(
+    (chatId: string) => {
+      setChats((prev) => prev.filter((chat) => chat.id !== chatId))
+
+      // If we're deleting the active chat, switch to another chat
+      if (chatId === activeChatId) {
+        const remainingChats = chats.filter((chat) => chat.id !== chatId)
+        if (remainingChats.length > 0) {
+          switchChat(remainingChats[0].id)
+        } else {
+          // If no chats remain, create a new one
+          createNewChat()
+        }
+      }
+    },
+    [activeChatId, chats, switchChat, createNewChat]
+  )
 
   return {
     messages,
+    isStreaming,
+    handleSendMessage,
     inputMessage,
     setInputMessage,
-    sendMessage: handleSendMessage,
-    isStreaming,
-    apiKey,
     isApiKeySet,
-    validateApiKey: validateAndSetApiKey,
+    validateAndSetApiKey,
     clearApiKey,
     selectedModel,
     setSelectedModel,
     error: apiKeyError || chatError,
-    threadId
-  };
+    loadThreadHistory,
+    chats,
+    activeChatId,
+    switchChat,
+    createNewChat,
+    renameChat,
+    deleteChat,
+  }
 }
-
