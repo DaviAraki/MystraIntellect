@@ -1,54 +1,58 @@
-import React, { useState } from 'react';
-import { CopyIcon, CheckIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ReactNode } from 'react';
+import React, { useState } from 'react'
+import { CopyIcon, CheckIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { ReactNode } from 'react'
 
 interface CodeBlockProps {
-  className?: string;
-  children: ReactNode;
+  className?: string
+  children: ReactNode
 }
 
-export const CodeBlock = ({className, children, ...props }: CodeBlockProps) => {
-  const [copied, setCopied] = useState(false);
-  const match = /language-(\w+)/.exec(className || '');
-  const language = match ? match[1] : '';
-  
+export const CodeBlock = ({
+  className,
+  children,
+  ...props
+}: CodeBlockProps) => {
+  const [copied, setCopied] = useState(false)
+  const match = /language-(\w+)/.exec(className || '')
+  const language = match ? match[1] : ''
+
   if (language) {
     return (
-      <div className="relative overflow-hidden">
-        <div className="sticky top-0 z-10 flex justify-end items-center space-x-2 p-2 bg-gray-900 bg-opacity-75 backdrop-blur-sm">
-          <span className="text-xs bg-gray-700 px-2 py-1 rounded">
+      <div className='relative overflow-hidden'>
+        <div className='sticky top-0 z-10 flex justify-end items-center space-x-2 p-2 bg-gray-900 bg-opacity-75 backdrop-blur-sm'>
+          <span className='text-xs bg-gray-700 px-2 py-1 rounded'>
             {language}
           </span>
 
           <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs bg-gray-800 hover:bg-gray-700"
+            variant='ghost'
+            size='sm'
+            className='text-xs bg-gray-800 hover:bg-gray-700'
             onClick={() => {
-              navigator.clipboard.writeText(String(children));
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
+              navigator.clipboard.writeText(String(children))
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
             }}
           >
             {copied ? (
               <>
-                <CheckIcon className="h-4 w-4 mr-1" /> Copied
+                <CheckIcon className='h-4 w-4 mr-1' /> Copied
               </>
             ) : (
               <>
-                <CopyIcon className="h-4 w-4 mr-1" /> Copy
+                <CopyIcon className='h-4 w-4 mr-1' /> Copy
               </>
             )}
           </Button>
         </div>
-        <div className="relative z-0">
+        <div className='relative z-0'>
           <SyntaxHighlighter
             style={atomDark}
             language={language}
-            PreTag="div"
+            PreTag='div'
             {...props}
           >
             {String(children).replace(/\n$/, '')}
@@ -57,5 +61,9 @@ export const CodeBlock = ({className, children, ...props }: CodeBlockProps) => {
       </div>
     )
   }
-  return <code className={className} {...props}>{children}</code>
+  return (
+    <code className={className} {...props}>
+      {children}
+    </code>
+  )
 }
