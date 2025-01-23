@@ -66,16 +66,21 @@ export default function ChatPage() {
             Your API key is stored locally in your browser and is never sent to
             our servers.
           </p>
-          <Input
-            value={apiKeyInput}
-            onChange={(e) => {
-              setApiKeyInput(e.target.value)
-              validateAndSetApiKey(e.target.value)
-            }}
-            placeholder='Enter your OpenAI API key'
-            type='password'
-            className='mb-4'
-          />
+          <div className='flex gap-2'>
+            <Input
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder='Enter your OpenAI API key'
+              type='password'
+              className='flex-grow'
+            />
+            <Button
+              onClick={() => validateAndSetApiKey(apiKeyInput)}
+              disabled={!apiKeyInput.trim()}
+            >
+              Submit
+            </Button>
+          </div>
           {error && <p className='text-red-500 mt-2'>{error}</p>}
         </div>
       </div>
