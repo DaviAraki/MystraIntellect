@@ -12,10 +12,16 @@ interface Chat {
 export function useChatViewModel() {
   const [chats, setChats] = useState<Chat[]>(() => {
     if (typeof window !== 'undefined') {
-      const savedChats = localStorage.getItem(CONFIG.STORAGE.CHATS)
-      return savedChats
-        ? JSON.parse(savedChats)
-        : [{ id: '1', name: 'New Chat' }]
+      try {
+        const savedChats = localStorage.getItem(CONFIG.STORAGE.CHATS)
+        if (savedChats) {
+          const parsedChats = JSON.parse(savedChats)
+          return parsedChats
+        }
+      } catch (error) {
+        console.error('Error parsing chats from localStorage:', error)
+      }
+      return [{ id: '1', name: 'New Chat' }]
     }
     return [{ id: '1', name: 'New Chat' }]
   })

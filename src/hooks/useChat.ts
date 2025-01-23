@@ -25,8 +25,16 @@ export function useChat(apiKey: string) {
   // Initialize threadIds from localStorage
   const [threadIds, setThreadIds] = useState<Record<string, string>>(() => {
     if (typeof window !== 'undefined') {
-      const savedThreadIds = localStorage.getItem('chatThreadIds')
-      return savedThreadIds ? JSON.parse(savedThreadIds) : {}
+      try {
+        const savedThreadIds = localStorage.getItem('chatThreadIds')
+        if (savedThreadIds) {
+          const parsedThreadIds = JSON.parse(savedThreadIds)
+          return parsedThreadIds
+        }
+      } catch (error) {
+        console.error('Error parsing thread IDs from localStorage:', error)
+      }
+      return {}
     }
     return {}
   })

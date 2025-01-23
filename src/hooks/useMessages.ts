@@ -8,14 +8,19 @@ export function useMessages() {
     Record<string, Message[]>
   >(() => {
     if (typeof window !== 'undefined') {
-      const savedMessages = localStorage.getItem(CONFIG.STORAGE.MESSAGES)
-      return savedMessages
-        ? JSON.parse(savedMessages)
-        : {
-            '1': [
-              { id: 1, text: CONFIG.UI.DEFAULT_BOT_MESSAGE, sender: 'bot' },
-            ],
-          }
+      try {
+        const savedMessages = localStorage.getItem(CONFIG.STORAGE.MESSAGES)
+        if (savedMessages) {
+          const parsedMessages = JSON.parse(savedMessages)
+          return parsedMessages
+        }
+      } catch (error) {
+        console.error('Error parsing messages from localStorage:', error)
+      }
+      // Return default state if parsing fails or no saved messages
+      return {
+        '1': [{ id: 1, text: CONFIG.UI.DEFAULT_BOT_MESSAGE, sender: 'bot' }],
+      }
     }
     return {
       '1': [{ id: 1, text: CONFIG.UI.DEFAULT_BOT_MESSAGE, sender: 'bot' }],
@@ -24,7 +29,8 @@ export function useMessages() {
 
   const [activeChatId, setActiveChatId] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('activeChatId') || '1'
+      const savedId = localStorage.getItem('activeChatId')
+      return savedId || '1'
     }
     return '1'
   })

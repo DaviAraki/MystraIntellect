@@ -77,8 +77,8 @@ export default function ChatPage() {
 
   return (
     <div className='flex h-screen bg-black text-green-400 font-mono'>
-      {/* Chat List Sidebar */}
-      <div className='w-64 border-r border-gray-800 flex flex-col'>
+      {/* Fixed Chat List Sidebar */}
+      <div className='fixed top-0 left-0 h-screen w-64 border-r border-gray-800 flex flex-col bg-black z-10'>
         <div className='p-4 border-b border-gray-800'>
           <Button onClick={createNewChat} className='w-full'>
             New Chat
@@ -137,7 +137,7 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Area with left margin to account for fixed sidebar */}
-      <div className='flex-1 flex flex-col'>
+      <div className='ml-64 flex-1 flex flex-col'>
         <header className='p-4 border-b border-gray-800 flex justify-between items-center'>
           <div className='flex items-center gap-4'>
             <h1 className='text-2xl font-bold'>MystraIntellect</h1>
