@@ -48,6 +48,7 @@ export function useChatViewModel() {
     setActiveChatId,
     activeChatId,
     clearMessages,
+    setIsStreaming,
   } = useChat(apiKey)
 
   useEffect(() => {
@@ -71,7 +72,7 @@ export function useChatViewModel() {
       await sendMessage(inputMessage, selectedModel)
       setInputMessage('')
     }
-  }, [inputMessage, selectedModel, sendMessage])
+  }, [inputMessage, selectedModel, sendMessage, setInputMessage])
 
   const switchChat = useCallback(
     (chatId: string) => {
@@ -128,5 +129,6 @@ export function useChatViewModel() {
     createNewChat,
     renameChat,
     deleteChat,
+    setIsStreaming,
   }
 }

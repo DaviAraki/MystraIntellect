@@ -164,5 +164,6 @@ export function useChat(apiKey: string) {
     clearMessages,
     setActiveChatId,
     activeChatId,
+    setIsStreaming,
   }
 }

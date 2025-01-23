@@ -35,6 +35,7 @@ export default function ChatPage() {
     createNewChat,
     renameChat,
     deleteChat,
+    setIsStreaming,
   } = useChatViewModel()
 
   const [previewFiles, setPreviewFiles] = useState<Record<
@@ -48,7 +49,13 @@ export default function ChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    await handleSendMessage()
+    if (isStreaming || !inputMessage.trim()) return
+    setIsStreaming(true)
+    try {
+      await handleSendMessage()
+    } finally {
+      setIsStreaming(false)
+    }
   }
 
   if (!isApiKeySet) {
@@ -188,8 +195,11 @@ export default function ChatPage() {
                   <Button
                     type='submit'
                     disabled={isStreaming || !inputMessage.trim()}
+                    className={
+                      isStreaming ? 'opacity-50 cursor-not-allowed' : ''
+                    }
                   >
-                    Send
+                    {isStreaming ? 'Sending...' : 'Send'}
                   </Button>
                 </div>
                 {error && <p className='text-red-500 mt-2 text-sm'>{error}</p>}
