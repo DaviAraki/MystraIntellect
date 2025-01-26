@@ -1,3 +1,4 @@
+// hooks/useChat.ts
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
@@ -67,7 +68,7 @@ export function useChat() {
         // Create temporary bot message
         const botMessage: Message = {
           id: Date.now() + 1,
-          text: '', // Start with empty text
+          text: '',
           sender: 'bot',
           chatId: activeChatId,
           timestamp: Date.now(),
@@ -80,16 +81,13 @@ export function useChat() {
           return updated
         })
 
-        // Prepare API messages
+        // Prepare API messages - FIXED SECTION
         const apiMessages = messages
-          .filter((msg) => msg.sender !== 'bot') // Remove previous bot responses
           .map((msg) => ({
             role: msg.sender === 'user' ? 'user' : 'assistant',
             content: msg.text,
           }))
-
-        // Add new user message to history
-        apiMessages.push({ role: 'user', content: message })
+          .concat({ role: 'user', content: message })
 
         // Get API key
         const apiKey = localStorage.getItem(CONFIG.STORAGE.API_KEY) || ''

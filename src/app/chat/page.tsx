@@ -39,7 +39,7 @@ export default function ChatPage() {
   )
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [selectedModel, setSelectedModel] = useState<DeepSeekModel>(
-    CONFIG.MODELS.DEEPSEEK_CHAT
+    CONFIG.MODELS.DEEPSEEK_REASONER
   )
 
   useEffect(() => {
