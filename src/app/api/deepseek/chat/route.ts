@@ -1,4 +1,3 @@
-import { ChatMessage } from '@/types/message'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
@@ -7,54 +6,84 @@ export const maxDuration = 60
 
 const VALID_MODELS = ['deepseek-chat', 'deepseek-reasoner'] as const
 
+const getSystemPrompt = (model: (typeof VALID_MODELS)[number]) => {
+  const basePrompt = 'You are an expert software developer. '
+  const reasonerAddition = `Respond using this structure:
+**Analysis**
+- Breakdown of the problem
+- Key considerations
+
+**Solution Approach**
+- Step-by-step methodology
+- Technology choices
+
+**Implementation**
+\`\`\`[language]
+// Code solution
+\`\`\`
+- Explanation of key parts`
+
+  return model === 'deepseek-reasoner'
+    ? basePrompt + reasonerAddition
+    : basePrompt +
+        'Provide clear, concise answers with markdown code blocks when appropriate.'
+}
+
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
-        { error: 'Authorization header must start with Bearer' },
+        { error: 'Authorization header must use Bearer scheme' },
         { status: 401 }
       )
     }
 
     const apiKey = authHeader.split(' ')[1]
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key required' }, { status: 401 })
+    if (!apiKey?.trim()) {
+      return NextResponse.json(
+        { error: 'Valid API key required' },
+        { status: 401 }
+      )
     }
 
     const { messages = [], model } = await req.json()
 
     if (!VALID_MODELS.includes(model as (typeof VALID_MODELS)[number])) {
       return NextResponse.json(
-        { error: `Invalid model. Use: ${VALID_MODELS.join(', ')}` },
+        { error: `Invalid model. Valid options: ${VALID_MODELS.join(', ')}` },
         { status: 400 }
       )
     }
 
     const openai = new OpenAI({
       apiKey,
-      baseURL: 'https://api.deepseek.com', // Correct base URL
+      baseURL: 'https://api.deepseek.com',
     })
 
-    const formattedMessages: OpenAI.ChatCompletionMessageParam[] = [
+    const conversationHistory: OpenAI.ChatCompletionMessageParam[] = [
       {
         role: 'system',
-        content:
-          'You are an expert software developer. Follow these rules:\n' +
-          '- Use markdown code blocks with [filename] headers\n' +
-          '- Explain concepts clearly\n' +
-          '- Provide complete solutions',
+        content: getSystemPrompt(model),
       },
-      ...messages.map((m: ChatMessage) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      ...messages
+        .filter(
+          (msg: any) =>
+            ['user', 'assistant'].includes(msg.role) &&
+            typeof msg.content === 'string'
+        )
+        .map((msg: any) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
     ]
 
     const stream = await openai.chat.completions.create({
       model,
-      messages: formattedMessages,
+      messages: conversationHistory,
       stream: true,
+      temperature: model === 'deepseek-reasoner' ? 0.3 : 0.7,
+      max_tokens: model === 'deepseek-reasoner' ? 2048 : 1024,
     })
 
     const readableStream = new ReadableStream({
@@ -70,6 +99,9 @@ export async function POST(req: Request) {
           controller.error(error)
         }
       },
+      cancel() {
+        stream.controller.abort()
+      },
     })
 
     return new NextResponse(readableStream, {
@@ -78,7 +110,7 @@ export async function POST(req: Request) {
         'Cache-Control': 'no-store, max-age=0',
       },
     })
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('API Error:', error)
 
     if (error instanceof OpenAI.APIError) {
@@ -93,7 +125,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'API request failed' },
+      { error: error.message || 'API request failed' },
       { status: 500 }
     )
   }

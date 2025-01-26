@@ -55,7 +55,8 @@ export function useChat() {
         setIsStreaming(true)
         setError(null)
 
-        const newMessage: Message = {
+        // Create user message
+        const userMessage: Message = {
           id: Date.now(),
           text: message,
           sender: 'user',
@@ -63,17 +64,37 @@ export function useChat() {
           timestamp: Date.now(),
         }
 
-        // Update local state
+        // Create temporary bot message
+        const botMessage: Message = {
+          id: Date.now() + 1,
+          text: '', // Start with empty text
+          sender: 'bot',
+          chatId: activeChatId,
+          timestamp: Date.now(),
+        }
+
+        // Update state immediately
         setMessages((prev) => {
-          const updated = [...prev, newMessage]
+          const updated = [...prev, userMessage, botMessage]
           localStorage.setItem(`chat-${activeChatId}`, JSON.stringify(updated))
           return updated
         })
 
+        // Prepare API messages
+        const apiMessages = messages
+          .filter((msg) => msg.sender !== 'bot') // Remove previous bot responses
+          .map((msg) => ({
+            role: msg.sender === 'user' ? 'user' : 'assistant',
+            content: msg.text,
+          }))
+
+        // Add new user message to history
+        apiMessages.push({ role: 'user', content: message })
+
         // Get API key
         const apiKey = localStorage.getItem(CONFIG.STORAGE.API_KEY) || ''
 
-        // Create stream
+        // API Request
         const response = await fetch('/api/deepseek/chat', {
           method: 'POST',
           headers: {
@@ -81,14 +102,16 @@ export function useChat() {
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            messages: [{ role: 'user', content: message }],
+            messages: apiMessages,
             model,
           }),
         })
 
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`)
         if (!response.body) throw new Error('No response body')
 
-        // Process stream
+        // Stream processing
         const reader = response.body.getReader()
         let responseText = ''
 
@@ -98,24 +121,18 @@ export function useChat() {
 
           responseText += new TextDecoder().decode(value)
           setMessages((prev) => {
-            const last = prev[prev.length - 1]
-            const newMessage: Message = {
-              id: Date.now(),
-              text: responseText,
-              sender: 'bot',
-              chatId: activeChatId,
-              timestamp: Date.now(),
-            }
-
-            return last.sender === 'bot'
-              ? [...prev.slice(0, -1), newMessage]
-              : [...prev, newMessage]
+            const lastMessage = prev[prev.length - 1]
+            return lastMessage.sender === 'bot'
+              ? [...prev.slice(0, -1), { ...lastMessage, text: responseText }]
+              : [...prev, { ...botMessage, text: responseText }]
           })
         }
 
-        // Persist final response
+        // Final update with complete response
         setMessages((prev) => {
-          const updated = [...prev]
+          const updated = prev.map((msg) =>
+            msg.id === botMessage.id ? { ...msg, text: responseText } : msg
+          )
           localStorage.setItem(`chat-${activeChatId}`, JSON.stringify(updated))
           return updated
         })
@@ -124,11 +141,13 @@ export function useChat() {
         setError(
           error instanceof Error ? error.message : 'Failed to send message'
         )
+        // Remove incomplete bot message on error
+        setMessages((prev) => prev.filter((msg) => msg.text !== ''))
       } finally {
         setIsStreaming(false)
       }
     },
-    [activeChatId]
+    [activeChatId, messages]
   )
 
   return {

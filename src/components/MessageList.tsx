@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from 'react'
+// components/MessageList.tsx
+import { useRef, useEffect } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MessageComponent } from './MessageComponent'
 import { Message } from '@/types/message'
@@ -13,7 +14,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  // Scroll to bottom when messages change or during streaming
+  // Scroll handling (keep your original implementation)
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({
@@ -22,13 +23,11 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
     }
   }, [messages, isStreaming])
 
-  // Additional scroll to bottom during streaming
   useEffect(() => {
     if (isStreaming && bottomRef.current) {
       const scrollInterval = setInterval(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'auto' })
       }, 100)
-
       return () => clearInterval(scrollInterval)
     }
   }, [isStreaming])

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+// components/MessageComponent.tsx
+import { useState, useEffect } from 'react'
 import { User, Bot } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Message } from '@/types/message'
@@ -34,7 +35,6 @@ export function MessageComponent({ message }: MessageComponentProps) {
               code: ({ className, children, ...props }) =>
                 CodeBlock({ className, children, ...props }),
             }}
-            remarkPlugins={[]}
           >
             {message.text}
           </ReactMarkdown>

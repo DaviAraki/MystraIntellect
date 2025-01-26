@@ -14,6 +14,10 @@ import {
 } from '@/components/ui/select'
 import { MessageList } from '@/components/MessageList'
 
+type DeepSeekModel =
+  | typeof CONFIG.MODELS.DEEPSEEK_CHAT
+  | typeof CONFIG.MODELS.DEEPSEEK_REASONER
+
 export default function ChatPage() {
   const {
     loading,
@@ -30,14 +34,16 @@ export default function ChatPage() {
     clearApiKey,
   } = useChat()
 
-  const [localChats, setLocalChats] = useState<
-    Array<{ id: string; name: string }>
-  >([])
+  const [localChats, setLocalChats] = useState<{ id: string; name: string }[]>(
+    []
+  )
   const [apiKeyInput, setApiKeyInput] = useState('')
+  const [selectedModel, setSelectedModel] = useState<DeepSeekModel>(
+    CONFIG.MODELS.DEEPSEEK_CHAT
+  )
 
-  // Load chat list
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    const loadChats = () => {
       const chats = Object.keys(localStorage)
         .filter((key) => key.startsWith('chat-'))
         .map((key) => ({
@@ -46,6 +52,8 @@ export default function ChatPage() {
         }))
       setLocalChats(chats)
     }
+
+    loadChats()
   }, [activeChatId])
 
   if (loading) {
@@ -88,7 +96,6 @@ export default function ChatPage() {
 
   return (
     <div className='flex h-screen bg-black text-green-400 font-mono'>
-      {/* Chat List Sidebar */}
       <div className='w-64 border-r border-gray-800 flex flex-col'>
         <div className='p-4 border-b border-gray-800'>
           <Button className='w-full' onClick={createNewChat}>
@@ -110,16 +117,18 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Main Chat Area */}
       <div className='flex-1 flex flex-col'>
         <header className='p-4 border-b border-gray-800 flex justify-between items-center'>
           <div className='flex items-center gap-4'>
             <h1 className='text-2xl font-bold'>MystraIntellect</h1>
-            <Select defaultValue={CONFIG.MODELS.DEEPSEEK_CHAT}>
+            <Select
+              value={selectedModel}
+              onValueChange={(value: DeepSeekModel) => setSelectedModel(value)}
+            >
               <SelectTrigger className='w-[200px]'>
                 <SelectValue placeholder='Select Model' />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className='bg-black border-gray-800'>
                 <SelectItem value={CONFIG.MODELS.DEEPSEEK_CHAT}>
                   DeepSeek Chat
                 </SelectItem>
@@ -143,7 +152,7 @@ export default function ChatPage() {
           onSubmit={async (e) => {
             e.preventDefault()
             if (!inputMessage.trim()) return
-            await sendMessage(inputMessage, CONFIG.MODELS.DEEPSEEK_CHAT)
+            await sendMessage(inputMessage, selectedModel)
             setInputMessage('')
           }}
         >
