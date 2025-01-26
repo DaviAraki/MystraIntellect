@@ -68,11 +68,11 @@ export async function POST(req: Request) {
       },
       ...messages
         .filter(
-          (msg: any) =>
+          (msg: { role: string; content: unknown }) =>
             ['user', 'assistant'].includes(msg.role) &&
             typeof msg.content === 'string'
         )
-        .map((msg: any) => ({
+        .map((msg: { role: 'user' | 'assistant'; content: string }) => ({
           role: msg.role,
           content: msg.content,
         })),
@@ -91,7 +91,9 @@ export async function POST(req: Request) {
         try {
           for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || ''
-            controller.enqueue(new TextEncoder().encode(content))
+            if (content) {
+              controller.enqueue(new TextEncoder().encode(content))
+            }
           }
           controller.close()
         } catch (error) {
@@ -106,11 +108,13 @@ export async function POST(req: Request) {
 
     return new NextResponse(readableStream, {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-store, max-age=0',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
       },
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Error:', error)
 
     if (error instanceof OpenAI.APIError) {
@@ -125,7 +129,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { error: error.message || 'API request failed' },
+      { error: error instanceof Error ? error.message : 'API request failed' },
       { status: 500 }
     )
   }
