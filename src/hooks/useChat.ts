@@ -1,169 +1,151 @@
-import { useState, useCallback, useEffect } from 'react'
-import { ChatService } from '@/services/ChatServices'
-import { useMessages } from './useMessages'
-import { Message } from '@/types'
+'use client'
 
-interface OpenAIMessage {
-  content: Array<{
-    text: { value: string }
-  }>
-  role: 'user' | 'assistant'
-}
+import { useState, useEffect, useCallback } from 'react'
+import { Message } from '@/types/message'
+import { CONFIG } from '@/config/constants'
 
-export function useChat(apiKey: string) {
-  const {
-    addMessage,
-    updateLastBotMessage,
-    setIsStreaming,
-    setMessages,
-    activeChatId,
-    setActiveChatId,
-    clearChat,
-    ...messageState
-  } = useMessages()
-
-  // Initialize threadIds from localStorage
-  const [threadIds, setThreadIds] = useState<Record<string, string>>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedThreadIds = localStorage.getItem('chatThreadIds')
-        if (savedThreadIds) {
-          const parsedThreadIds = JSON.parse(savedThreadIds)
-          return parsedThreadIds
-        }
-      } catch (error) {
-        console.error('Error parsing thread IDs from localStorage:', error)
-      }
-      return {}
-    }
-    return {}
-  })
-
+export function useChat() {
+  const [loading, setLoading] = useState(true)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [activeChatId, setActiveChatId] = useState('')
+  const [inputMessage, setInputMessage] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [apiKeySet, setApiKeySet] = useState(false)
 
-  // Persist threadIds whenever they change
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('chatThreadIds', JSON.stringify(threadIds))
-    }
-  }, [threadIds])
-
-  const clearMessages = useCallback(
-    (chatId: string) => {
-      clearChat(chatId)
-      // Clear thread ID for this chat
-      setThreadIds((prev) => {
-        const newThreadIds = { ...prev }
-        delete newThreadIds[chatId]
-        return newThreadIds
-      })
-    },
-    [clearChat]
-  )
-
-  const loadThreadHistory = useCallback(
-    async (chatId: string) => {
-      const threadId = threadIds[chatId]
-      if (!threadId || !apiKey) return
-
+    const loadState = () => {
       try {
-        const chatService = new ChatService(apiKey)
-        const history = await chatService.getThreadHistory(threadId)
+        const key = localStorage.getItem(CONFIG.STORAGE.API_KEY)
+        setApiKeySet(!!key)
 
-        const formattedMessages = history.messages.data.map(
-          (msg: OpenAIMessage, index: number) => ({
-            id: index + 1,
-            text: msg.content.map((c) => c.text.value).join(''),
-            sender: msg.role === 'user' ? 'user' : 'bot',
-            formatted: true, // Add a flag to indicate the message is formatted
-          })
-        )
+        const chatId = localStorage.getItem(CONFIG.STORAGE.ACTIVE_CHAT_ID) || ''
+        setActiveChatId(chatId)
 
-        // Ensure messages are properly sorted and formatted before setting
-        setMessages(formattedMessages.reverse(), chatId)
+        const savedMessages = chatId
+          ? JSON.parse(localStorage.getItem(`chat-${chatId}`) || '[]')
+          : []
+        setMessages(savedMessages)
       } catch (error) {
-        setError(
-          error instanceof Error ? error.message : 'Failed to load chat history'
-        )
+        console.error('Load error:', error)
+      } finally {
+        setLoading(false)
       }
-    },
-    [threadIds, apiKey, setMessages]
-  )
+    }
+
+    loadState()
+  }, [])
+
+  const createNewChat = useCallback(() => {
+    const newChatId = `chat-${Date.now()}`
+    localStorage.setItem(CONFIG.STORAGE.ACTIVE_CHAT_ID, newChatId)
+    setActiveChatId(newChatId)
+    setMessages([])
+  }, [])
+
+  const switchChat = useCallback((id: string) => {
+    localStorage.setItem(CONFIG.STORAGE.ACTIVE_CHAT_ID, id)
+    setActiveChatId(id)
+    setMessages(JSON.parse(localStorage.getItem(`chat-${id}`) || '[]'))
+  }, [])
 
   const sendMessage = useCallback(
-    async (inputMessage: string, selectedModel: string) => {
-      if (!inputMessage.trim() || !apiKey) return
-
-      const userMessage: Message = {
-        id: messageState.messages.length + 1,
-        text: inputMessage,
-        sender: 'user',
-      }
-
-      addMessage(userMessage, activeChatId)
-      setError(null)
-
+    async (message: string, model: string) => {
       try {
-        const chatService = new ChatService(apiKey)
-        const { threadId: newThreadId, stream } = await chatService.sendMessage(
-          inputMessage,
-          selectedModel,
-          threadIds[activeChatId]
-        )
+        setIsStreaming(true)
+        setError(null)
 
-        // Update thread ID for this chat
-        setThreadIds((prev) => ({
-          ...prev,
-          [activeChatId]: newThreadId,
-        }))
-
-        const reader = stream.getReader()
-        const decoder = new TextDecoder()
-
-        const botMessage: Message = {
-          id: messageState.messages.length + 2,
-          text: '',
-          sender: 'bot',
+        const newMessage: Message = {
+          id: Date.now(),
+          text: message,
+          sender: 'user',
+          chatId: activeChatId,
+          timestamp: Date.now(),
         }
 
-        addMessage(botMessage, activeChatId)
-        setIsStreaming(true)
+        // Update local state
+        setMessages((prev) => {
+          const updated = [...prev, newMessage]
+          localStorage.setItem(`chat-${activeChatId}`, JSON.stringify(updated))
+          return updated
+        })
+
+        // Get API key
+        const apiKey = localStorage.getItem(CONFIG.STORAGE.API_KEY) || ''
+
+        // Create stream
+        const response = await fetch('/api/deepseek/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: message }],
+            model,
+          }),
+        })
+
+        if (!response.body) throw new Error('No response body')
+
+        // Process stream
+        const reader = response.body.getReader()
+        let responseText = ''
 
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
 
-          const chunk = decoder.decode(value, { stream: true })
-          updateLastBotMessage(chunk, activeChatId)
+          responseText += new TextDecoder().decode(value)
+          setMessages((prev) => {
+            const last = prev[prev.length - 1]
+            const newMessage: Message = {
+              id: Date.now(),
+              text: responseText,
+              sender: 'bot',
+              chatId: activeChatId,
+              timestamp: Date.now(),
+            }
+
+            return last.sender === 'bot'
+              ? [...prev.slice(0, -1), newMessage]
+              : [...prev, newMessage]
+          })
         }
+
+        // Persist final response
+        setMessages((prev) => {
+          const updated = [...prev]
+          localStorage.setItem(`chat-${activeChatId}`, JSON.stringify(updated))
+          return updated
+        })
       } catch (error) {
+        console.error('Chat error:', error)
         setError(
-          error instanceof Error ? error.message : 'An unknown error occurred'
+          error instanceof Error ? error.message : 'Failed to send message'
         )
       } finally {
         setIsStreaming(false)
       }
     },
-    [
-      apiKey,
-      messageState.messages.length,
-      threadIds,
-      activeChatId,
-      addMessage,
-      updateLastBotMessage,
-      setIsStreaming,
-    ]
+    [activeChatId]
   )
 
   return {
-    ...messageState,
+    loading,
+    messages,
+    inputMessage,
+    setInputMessage,
     sendMessage,
-    threadIds,
+    isStreaming,
     error,
-    loadThreadHistory,
-    clearMessages,
-    setActiveChatId,
+    apiKeySet,
     activeChatId,
-    setIsStreaming,
+    createNewChat,
+    switchChat,
+    clearApiKey: () => {
+      localStorage.removeItem(CONFIG.STORAGE.API_KEY)
+      window.location.reload()
+    },
   }
 }

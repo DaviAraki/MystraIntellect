@@ -1,11 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MessageList } from '@/components/MessageList'
-import { useChatViewModel } from '@/viewmodels/ChatViewModel'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { useChat } from '@/hooks/useChat'
+import { CONFIG } from '@/config/constants'
 import {
   Select,
   SelectContent,
@@ -13,69 +12,75 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CONFIG } from '@/config/constants'
+import { MessageList } from '@/components/MessageList'
 
 export default function ChatPage() {
   const {
+    loading,
     messages,
     inputMessage,
     setInputMessage,
-    handleSendMessage,
+    sendMessage,
     isStreaming,
-    isApiKeySet,
-    validateAndSetApiKey,
-    clearApiKey,
-    selectedModel,
-    setSelectedModel,
     error,
-    chats,
+    apiKeySet,
     activeChatId,
-    switchChat,
     createNewChat,
-    renameChat,
-    deleteChat,
-    setIsStreaming,
-  } = useChatViewModel()
+    switchChat,
+    clearApiKey,
+  } = useChat()
 
-  const [editingChatId, setEditingChatId] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState('')
+  const [localChats, setLocalChats] = useState<
+    Array<{ id: string; name: string }>
+  >([])
   const [apiKeyInput, setApiKeyInput] = useState('')
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (isStreaming || !inputMessage.trim()) return
-    setIsStreaming(true)
-    try {
-      await handleSendMessage()
-    } finally {
-      setIsStreaming(false)
+  // Load chat list
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const chats = Object.keys(localStorage)
+        .filter((key) => key.startsWith('chat-'))
+        .map((key) => ({
+          id: key,
+          name: new Date(parseInt(key.split('-')[1])).toLocaleString(),
+        }))
+      setLocalChats(chats)
     }
+  }, [activeChatId])
+
+  if (loading) {
+    return (
+      <div className='flex items-center justify-center h-screen bg-black'>
+        <div className='text-gray-400'>Loading chat...</div>
+      </div>
+    )
   }
 
-  if (!isApiKeySet) {
+  if (!apiKeySet) {
     return (
-      <div className='flex-grow flex items-center justify-center bg-black'>
+      <div className='flex items-center justify-center min-h-screen bg-black'>
         <div className='w-full max-w-md p-4'>
           <p className='mb-2 text-sm text-gray-400'>
-            Your API key is stored locally in your browser and is never sent to
-            our servers.
+            Your API key is stored locally and never sent to our servers.
           </p>
           <div className='flex gap-2'>
             <Input
               value={apiKeyInput}
               onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder='Enter your OpenAI API key'
+              placeholder='Enter your DeepSeek API key'
               type='password'
               className='flex-grow'
             />
             <Button
-              onClick={() => validateAndSetApiKey(apiKeyInput)}
+              onClick={() => {
+                localStorage.setItem(CONFIG.STORAGE.API_KEY, apiKeyInput)
+                window.location.reload()
+              }}
               disabled={!apiKeyInput.trim()}
             >
               Submit
             </Button>
           </div>
-          {error && <p className='text-red-500 mt-2'>{error}</p>}
         </div>
       </div>
     )
@@ -83,120 +88,81 @@ export default function ChatPage() {
 
   return (
     <div className='flex h-screen bg-black text-green-400 font-mono'>
-      {/* Fixed Chat List Sidebar */}
-      <div className='fixed top-0 left-0 h-screen w-64 border-r border-gray-800 flex flex-col bg-black z-10'>
+      {/* Chat List Sidebar */}
+      <div className='w-64 border-r border-gray-800 flex flex-col'>
         <div className='p-4 border-b border-gray-800'>
-          <Button onClick={createNewChat} className='w-full'>
+          <Button className='w-full' onClick={createNewChat}>
             New Chat
           </Button>
         </div>
         <div className='flex-1 overflow-y-auto'>
-          {chats.map((chat) => (
+          {localChats.map((chat) => (
             <div
               key={chat.id}
-              className={`flex items-center justify-between p-2 hover:bg-gray-800 ${
+              className={`p-2 hover:bg-gray-800 cursor-pointer ${
                 chat.id === activeChatId ? 'bg-gray-800' : ''
               }`}
+              onClick={() => switchChat(chat.id)}
             >
-              {chat.id === editingChatId ? (
-                <Input
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onBlur={() => {
-                    renameChat(chat.id, editingName)
-                    setEditingChatId(null)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      renameChat(chat.id, editingName)
-                      setEditingChatId(null)
-                    }
-                    if (e.key === 'Escape') {
-                      setEditingChatId(null)
-                    }
-                  }}
-                  autoFocus
-                  className='flex-1 mr-2'
-                />
-              ) : (
-                <button
-                  onClick={() => switchChat(chat.id)}
-                  className='flex-1 text-left truncate'
-                  onDoubleClick={() => {
-                    setEditingChatId(chat.id)
-                    setEditingName(chat.name)
-                  }}
-                >
-                  {chat.name}
-                </button>
-              )}
-              <Button
-                onClick={() => deleteChat(chat.id)}
-                className='px-2 py-1 bg-red-600 hover:bg-red-700'
-                size='sm'
-              >
-                ×
-              </Button>
+              {chat.name}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Main Chat Area with left margin to account for fixed sidebar */}
-      <div className='ml-64 flex-1 flex flex-col'>
+      {/* Main Chat Area */}
+      <div className='flex-1 flex flex-col'>
         <header className='p-4 border-b border-gray-800 flex justify-between items-center'>
           <div className='flex items-center gap-4'>
             <h1 className='text-2xl font-bold'>MystraIntellect</h1>
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className='w-[180px]'>
-                <SelectValue placeholder='Select model' />
+            <Select defaultValue={CONFIG.MODELS.DEEPSEEK_CHAT}>
+              <SelectTrigger className='w-[200px]'>
+                <SelectValue placeholder='Select Model' />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={CONFIG.MODELS.GPT4_MINI}>
-                  GPT-4 Mini
+                <SelectItem value={CONFIG.MODELS.DEEPSEEK_CHAT}>
+                  DeepSeek Chat
                 </SelectItem>
-                <SelectItem value={CONFIG.MODELS.GPT4}>GPT-4</SelectItem>
+                <SelectItem value={CONFIG.MODELS.DEEPSEEK_REASONER}>
+                  DeepSeek Reasoner
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button
-            onClick={clearApiKey}
-            className='bg-red-600 hover:bg-red-700 text-white'
-          >
+          <Button onClick={clearApiKey} className='bg-red-600 hover:bg-red-700'>
             Clear API Key
           </Button>
         </header>
 
-        <div className='flex-grow flex'>
-          <div className='flex-grow flex flex-col w-full'>
-            <ErrorBoundary>
-              <MessageList messages={messages} isStreaming={isStreaming} />
-              <form
-                onSubmit={handleSend}
-                className='p-4 border-t border-gray-800'
-              >
-                <div className='flex gap-2'>
-                  <Input
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder='Type your message...'
-                    className='flex-grow'
-                  />
-                  <Button
-                    type='submit'
-                    disabled={isStreaming || !inputMessage.trim()}
-                    className={
-                      isStreaming ? 'opacity-50 cursor-not-allowed' : ''
-                    }
-                  >
-                    {isStreaming ? 'Sending...' : 'Send'}
-                  </Button>
-                </div>
-                {error && <p className='text-red-500 mt-2 text-sm'>{error}</p>}
-              </form>
-            </ErrorBoundary>
+        <main className='flex-1 overflow-y-auto p-4'>
+          <MessageList messages={messages} isStreaming={isStreaming} />
+        </main>
+
+        <form
+          className='p-4 border-t border-gray-800'
+          onSubmit={async (e) => {
+            e.preventDefault()
+            if (!inputMessage.trim()) return
+            await sendMessage(inputMessage, CONFIG.MODELS.DEEPSEEK_CHAT)
+            setInputMessage('')
+          }}
+        >
+          <div className='flex gap-2'>
+            <Input
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder='Type your message...'
+              disabled={isStreaming}
+            />
+            <Button
+              type='submit'
+              disabled={!inputMessage.trim() || isStreaming}
+            >
+              {isStreaming ? 'Sending...' : 'Send'}
+            </Button>
           </div>
-        </div>
+          {error && <p className='text-red-500 text-sm mt-2'>{error}</p>}
+        </form>
       </div>
     </div>
   )
