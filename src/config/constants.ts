@@ -15,6 +15,9 @@ export const CONFIG = {
       VALIDATE_KEY: '/validate-key',
     },
   },
+  UI: {
+    DEFAULT_BOT_MESSAGE: 'Hello! How can I help you today?',
+  },
   DEFAULT_MODEL: 'deepseek-chat',
 } as const
 

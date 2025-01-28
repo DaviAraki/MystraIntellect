@@ -9,7 +9,7 @@ export function useMessages() {
   >(() => {
     if (typeof window !== 'undefined') {
       try {
-        const savedMessages = localStorage.getItem(CONFIG.STORAGE.MESSAGES)
+        const savedMessages = localStorage.getItem(CONFIG.STORAGE.CHAT_HISTORY)
         if (savedMessages) {
           const parsedMessages = JSON.parse(savedMessages)
           return parsedMessages
@@ -41,7 +41,7 @@ export function useMessages() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(
-        CONFIG.STORAGE.MESSAGES,
+        CONFIG.STORAGE.CHAT_HISTORY,
         JSON.stringify(messagesByChat)
       )
     }
