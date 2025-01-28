@@ -13,21 +13,21 @@ export function MessageComponent({ message }: MessageComponentProps) {
   const [isFormatted, setIsFormatted] = useState(false)
 
   useEffect(() => {
-    if (message.sender === 'bot' && !isFormatted) {
+    if (message.role === 'assistant' && !isFormatted) {
       setIsFormatted(true)
     }
   }, [message, isFormatted])
 
   return (
     <div className='mb-4 flex items-start max-w-[1200px] mx-auto w-full'>
-      {message.sender === 'user' ? (
+      {message.role === 'user' ? (
         <User className='mr-2 h-6 w-6 text-green-400 flex-shrink-0' />
       ) : (
         <Bot className='mr-2 h-6 w-6 text-green-400 flex-shrink-0' />
       )}
       <div className='bg-gray-900 rounded p-4 flex-1 overflow-hidden'>
-        {message.sender === 'user' ? (
-          <p className='whitespace-pre-wrap break-words'>{message.text}</p>
+        {message.role === 'user' ? (
+          <p className='whitespace-pre-wrap break-words'>{message.content}</p>
         ) : (
           <ReactMarkdown
             className='prose prose-invert max-w-none whitespace-pre-wrap break-words'
@@ -36,7 +36,7 @@ export function MessageComponent({ message }: MessageComponentProps) {
                 CodeBlock({ className, children, ...props }),
             }}
           >
-            {message.text}
+            {message.content}
           </ReactMarkdown>
         )}
       </div>

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useApiKey } from '@/hooks/useApiKey'
 import { useChat } from '@/hooks/useChat'
 import { CONFIG } from '@/config/constants'
+import { ModelType } from '@/config/constants'
 
 interface Chat {
   id: string
@@ -27,11 +28,12 @@ export function useChatViewModel() {
   })
 
   const [inputMessage, setInputMessage] = useState('')
-  const [selectedModel, setSelectedModel] = useState<string>(
-    CONFIG.MODELS.DEEPSEEK_REASONER
+  const [selectedModel, setSelectedModel] = useState<ModelType>(
+    CONFIG.MODELS.DEEPSEEK_CHAT
   )
 
   const {
+    apiKeys,
     isApiKeySet,
     error: apiKeyError,
     validateAndSetApiKey,
@@ -110,6 +112,13 @@ export function useChatViewModel() {
     [activeChatId, chats, switchChat, createNewChat]
   )
 
+  const canUseSelectedModel = useCallback(() => {
+    const provider = selectedModel.startsWith('deepseek')
+      ? 'deepseek'
+      : 'openai'
+    return isApiKeySet[provider]
+  }, [selectedModel, isApiKeySet])
+
   return {
     messages,
     isStreaming,
@@ -130,5 +139,7 @@ export function useChatViewModel() {
     renameChat,
     deleteChat,
     setIsStreaming,
+    canUseSelectedModel,
+    apiKeys,
   }
 }

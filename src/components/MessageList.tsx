@@ -12,39 +12,45 @@ interface MessageListProps {
 
 export function MessageList({ messages, isStreaming }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
 
-  // Scroll handling (keep your original implementation)
+  // Scroll to bottom on new messages
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({
         behavior: isStreaming ? 'auto' : 'smooth',
+        block: 'end',
       })
     }
   }, [messages, isStreaming])
 
+  // Auto-scroll during streaming
   useEffect(() => {
     if (isStreaming && bottomRef.current) {
       const scrollInterval = setInterval(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'auto' })
+        bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
       }, 100)
       return () => clearInterval(scrollInterval)
     }
   }, [isStreaming])
 
   return (
-    <ScrollArea className='flex-grow overflow-y-auto' ref={scrollAreaRef}>
-      <div className='p-4 space-y-4'>
-        {messages.map((message) => (
-          <MessageComponent key={message.id} message={message} />
-        ))}
-        {isStreaming && (
-          <div className='flex justify-center'>
-            <LoadingSpinner size='sm' />
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-    </ScrollArea>
+    <div className='relative flex-1 h-full overflow-hidden'>
+      <ScrollArea className='h-full'>
+        <div className='flex flex-col gap-4 p-4 min-h-full'>
+          {messages.map((message, index) => (
+            <MessageComponent
+              key={message.id || `${message.role}-${index}`}
+              message={message}
+            />
+          ))}
+          {isStreaming && (
+            <div className='flex justify-center'>
+              <LoadingSpinner size='sm' />
+            </div>
+          )}
+          <div ref={bottomRef} className='h-px' />
+        </div>
+      </ScrollArea>
+    </div>
   )
 }

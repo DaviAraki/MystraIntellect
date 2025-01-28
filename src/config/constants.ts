@@ -2,9 +2,12 @@ export const CONFIG = {
   MODELS: {
     DEEPSEEK_CHAT: 'deepseek-chat',
     DEEPSEEK_REASONER: 'deepseek-reasoner',
+    OPENAI_GPT4O_MINI: 'gpt-4o-mini',
+    OPENAI_GPT4O: 'gpt-4o',
   },
   STORAGE: {
-    API_KEY: 'deepseek-api-key',
+    DEEPSEEK_API_KEY: 'deepseek-api-key',
+    OPENAI_API_KEY: 'openai-api-key',
     ACTIVE_CHAT_ID: 'active-chat-id',
     CHAT_HISTORY: 'chat-history',
     CHATS: 'chats',
@@ -12,8 +15,10 @@ export const CONFIG = {
   API: {
     BASE_URL: '/api',
     ENDPOINTS: {
-      CHAT: '/deepseek/chat',
-      VALIDATE_KEY: '/validate-key',
+      DEEPSEEK_CHAT: 'api/deepseek/chat',
+      OPENAI_CHAT: 'api/openai/chat',
+      DEEPSEEK_VALIDATE_KEY: 'api/deepseek/validate-key',
+      OPENAI_VALIDATE_KEY: 'api/openai/validate-key',
     },
   },
   UI: {
@@ -22,4 +27,20 @@ export const CONFIG = {
   DEFAULT_MODEL: 'deepseek-chat',
 } as const
 
-export type DeepSeekModel = (typeof CONFIG.MODELS)[keyof typeof CONFIG.MODELS]
+export type DeepSeekModel = 'deepseek-chat' | 'deepseek-reasoner'
+export type OpenAIModel = 'gpt-4o-mini' | 'gpt-4o'
+export type ModelType = DeepSeekModel | OpenAIModel
+
+export const isDeepSeekModel = (model: string): model is DeepSeekModel => {
+  return (
+    model === CONFIG.MODELS.DEEPSEEK_CHAT ||
+    model === CONFIG.MODELS.DEEPSEEK_REASONER
+  )
+}
+
+export const isOpenAIModel = (model: string): model is OpenAIModel => {
+  return (
+    model === CONFIG.MODELS.OPENAI_GPT4O_MINI ||
+    model === CONFIG.MODELS.OPENAI_GPT4O
+  )
+}

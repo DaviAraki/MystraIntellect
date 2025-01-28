@@ -1,13 +1,9 @@
 export interface Message {
-  id: number
-  text: string
-  sender: 'user' | 'bot'
-  chatId: string
-  timestamp: number
+  role: 'user' | 'assistant'
+  content: string
+  id?: number
+  timestamp?: number
   formatted?: boolean
 }
 
-export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
+export type ChatMessage = Message
