@@ -28,11 +28,10 @@ export function useChatViewModel() {
 
   const [inputMessage, setInputMessage] = useState('')
   const [selectedModel, setSelectedModel] = useState<string>(
-    CONFIG.MODELS.GPT4_MINI
+    CONFIG.MODELS.DEEPSEEK_REASONER
   )
 
   const {
-    apiKey,
     isApiKeySet,
     error: apiKeyError,
     validateAndSetApiKey,
@@ -49,7 +48,7 @@ export function useChatViewModel() {
     activeChatId,
     clearMessages,
     setIsStreaming,
-  } = useChat(apiKey)
+  } = useChat()
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

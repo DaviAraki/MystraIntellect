@@ -227,6 +227,21 @@ export function useChat() {
     }
   }, [activeChatId])
 
+  const loadThreadHistory = useCallback((chatId: string) => {
+    const savedMessages = JSON.parse(localStorage.getItem(chatId) || '[]')
+    setMessages(savedMessages)
+  }, [])
+
+  const clearMessages = useCallback(
+    (chatId: string) => {
+      localStorage.setItem(chatId, JSON.stringify([]))
+      if (chatId === activeChatId) {
+        setMessages([])
+      }
+    },
+    [activeChatId]
+  )
+
   return {
     loading,
     messages,
@@ -234,13 +249,17 @@ export function useChat() {
     setInputMessage,
     sendMessage,
     isStreaming,
+    setIsStreaming,
     error,
     apiKeySet,
     activeChatId,
+    setActiveChatId,
     createNewChat,
     switchChat,
     deleteChat,
     updateChatName,
+    loadThreadHistory,
+    clearMessages,
     clearApiKey: () => {
       localStorage.removeItem(CONFIG.STORAGE.API_KEY)
       window.location.reload()

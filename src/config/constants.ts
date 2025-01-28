@@ -7,6 +7,7 @@ export const CONFIG = {
     API_KEY: 'deepseek-api-key',
     ACTIVE_CHAT_ID: 'active-chat-id',
     CHAT_HISTORY: 'chat-history',
+    CHATS: 'chats',
   },
   API: {
     BASE_URL: '/api',
