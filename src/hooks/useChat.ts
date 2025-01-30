@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Message } from '@/types/message'
-import { CONFIG } from '@/config/constants'
+import { CONFIG, isOpenAIModel } from '@/config/constants'
 import { ChatService } from '@/services/ChatServices'
 import { useApiKey } from '@/hooks/useApiKey'
 
@@ -11,6 +11,7 @@ export function useChat() {
   const [loading, setLoading] = useState(true)
   const [messages, setMessages] = useState<Message[]>([])
   const [activeChatId, setActiveChatId] = useState('')
+  const [threadId, setThreadId] = useState<string | null>(null)
   const [inputMessage, setInputMessage] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +30,11 @@ export function useChat() {
         setActiveChatId(chatId)
         const savedMessages = JSON.parse(localStorage.getItem(chatId) || '[]')
         setMessages(savedMessages)
+        // Load threadId for this chat only if it exists
+        const savedThreadId = localStorage.getItem(`${chatId}-threadId`)
+        if (savedThreadId) {
+          setThreadId(savedThreadId)
+        }
       } catch (error) {
         console.error('Load error:', error)
       } finally {
@@ -69,7 +75,8 @@ export function useChat() {
         const chatService = new ChatService(apiKeys[provider], provider)
         const response = await chatService.sendMessage(
           [...messages, userMessage],
-          model
+          model,
+          isOpenAIModel(model) ? threadId || undefined : undefined
         )
 
         if (!response) {
@@ -97,6 +104,24 @@ export function useChat() {
           if (done) break
 
           const chunk = decoder.decode(value)
+
+          // Check if the chunk contains threadId and we're using an OpenAI model
+          if (isOpenAIModel(model) && chunk.includes('threadId')) {
+            try {
+              const threadInfo = JSON.parse(chunk)
+              if (threadInfo.threadId) {
+                setThreadId(threadInfo.threadId)
+                localStorage.setItem(
+                  `${activeChatId}-threadId`,
+                  threadInfo.threadId
+                )
+                continue // Skip this chunk as it's not part of the message
+              }
+            } catch (e) {
+              // If parsing fails, treat it as regular message content
+            }
+          }
+
           assistantMessage += chunk
 
           // Update the last message content
@@ -129,13 +154,18 @@ export function useChat() {
         setIsStreaming(false)
       }
     },
-    [activeChatId, apiKeys, isApiKeySet, messages]
+    [activeChatId, apiKeys, isApiKeySet, messages, threadId]
   )
 
   const loadThreadHistory = useCallback((chatId: string) => {
     try {
       const savedMessages = JSON.parse(localStorage.getItem(chatId) || '[]')
       setMessages(savedMessages)
+      // Load threadId for this chat
+      const savedThreadId = localStorage.getItem(`${chatId}-threadId`)
+      if (savedThreadId) {
+        setThreadId(savedThreadId)
+      }
     } catch (error) {
       console.error('Error loading thread history:', error)
       setError('Failed to load chat history')
@@ -144,7 +174,9 @@ export function useChat() {
 
   const clearMessages = useCallback((chatId: string) => {
     setMessages([])
+    setThreadId(null)
     localStorage.setItem(chatId, JSON.stringify([]))
+    localStorage.removeItem(`${chatId}-threadId`)
   }, [])
 
   return {

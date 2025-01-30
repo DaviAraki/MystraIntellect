@@ -11,7 +11,8 @@ export class ChatService {
     this.provider = provider
   }
 
-  async sendMessage(messages: ChatMessage[], model: string) {
+  async sendMessage(messages: ChatMessage[], model: string, threadId?: string) {
+    const isOpenAI = isOpenAIModel(model)
     const endpoint = isDeepSeekModel(model)
       ? CONFIG.API.ENDPOINTS.DEEPSEEK_CHAT
       : CONFIG.API.ENDPOINTS.OPENAI_CHAT
@@ -25,6 +26,7 @@ export class ChatService {
       body: JSON.stringify({
         messages,
         model,
+        ...(isOpenAI && threadId ? { threadId } : {}),
       }),
     })
 
