@@ -103,7 +103,7 @@ export async function POST(req: Request) {
             // Handle reasoning content
             if (reasoningContent) {
               if (!isInThinking) {
-                controller.enqueue(new TextEncoder().encode('<thinking>'))
+                controller.enqueue(new TextEncoder().encode('<think>'))
                 isInThinking = true
               }
               controller.enqueue(new TextEncoder().encode(reasoningContent))
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
             // Handle regular content
             else {
               if (isInThinking) {
-                controller.enqueue(new TextEncoder().encode('</thinking>'))
+                controller.enqueue(new TextEncoder().encode('</think>'))
                 isInThinking = false
               }
               if (chunkContent) {

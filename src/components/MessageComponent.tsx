@@ -9,6 +9,49 @@ interface MessageComponentProps {
   message: Message
 }
 
+const processThinkTags = (content: string) => {
+  const parts = content.split(/(<think>|<\/think>)/).filter(Boolean)
+  return parts.map((part, index) => {
+    if (part === '<think>' || part === '</think>') return null
+    const isThinkContent = index > 0 && parts[index - 1] === '<think>'
+
+    if (isThinkContent) {
+      return (
+        <div
+          key={index}
+          className='my-4 p-4 bg-gray-800 border border-green-400/20 rounded-lg'
+        >
+          <div className='text-sm text-green-400 mb-2 font-semibold'>
+            Reasoning Process:
+          </div>
+          <ReactMarkdown
+            className='prose prose-invert max-w-none whitespace-pre-wrap break-words'
+            components={{
+              code: ({ className, children, ...props }) =>
+                CodeBlock({ className, children, ...props }),
+            }}
+          >
+            {part}
+          </ReactMarkdown>
+        </div>
+      )
+    }
+
+    return (
+      <ReactMarkdown
+        key={index}
+        className='prose prose-invert max-w-none whitespace-pre-wrap break-words'
+        components={{
+          code: ({ className, children, ...props }) =>
+            CodeBlock({ className, children, ...props }),
+        }}
+      >
+        {part}
+      </ReactMarkdown>
+    )
+  })
+}
+
 export function MessageComponent({ message }: MessageComponentProps) {
   const [isFormatted, setIsFormatted] = useState(false)
 
@@ -29,15 +72,7 @@ export function MessageComponent({ message }: MessageComponentProps) {
         {message.role === 'user' ? (
           <p className='whitespace-pre-wrap break-words'>{message.content}</p>
         ) : (
-          <ReactMarkdown
-            className='prose prose-invert max-w-none whitespace-pre-wrap break-words'
-            components={{
-              code: ({ className, children, ...props }) =>
-                CodeBlock({ className, children, ...props }),
-            }}
-          >
-            {message.content}
-          </ReactMarkdown>
+          processThinkTags(message.content)
         )}
       </div>
     </div>
