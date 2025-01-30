@@ -3,6 +3,10 @@ import OpenAI from 'openai'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
+interface ExtendedDelta
+  extends OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta {
+  reasoning_content?: string | null
+}
 
 const VALID_MODELS = ['deepseek-chat', 'deepseek-reasoner'] as const
 
@@ -89,12 +93,38 @@ export async function POST(req: Request) {
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
+          let isInThinking = false
+
           for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content || ''
-            if (content) {
-              controller.enqueue(new TextEncoder().encode(content))
+            const chunkDelta = chunk.choices[0]?.delta as ExtendedDelta
+            const chunkContent = chunkDelta?.content || ''
+            const reasoningContent = chunkDelta?.reasoning_content || ''
+
+            // Handle reasoning content
+            if (reasoningContent) {
+              if (!isInThinking) {
+                controller.enqueue(new TextEncoder().encode('<thinking>'))
+                isInThinking = true
+              }
+              controller.enqueue(new TextEncoder().encode(reasoningContent))
+            }
+            // Handle regular content
+            else {
+              if (isInThinking) {
+                controller.enqueue(new TextEncoder().encode('</thinking>'))
+                isInThinking = false
+              }
+              if (chunkContent) {
+                controller.enqueue(new TextEncoder().encode(chunkContent))
+              }
             }
           }
+
+          // Close any open thinking tag at the end
+          if (isInThinking) {
+            controller.enqueue(new TextEncoder().encode('</thinking>'))
+          }
+
           controller.close()
         } catch (error) {
           console.error('Stream error:', error)
