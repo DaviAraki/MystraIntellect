@@ -71,7 +71,7 @@ export function useChatViewModel() {
   const handleSendMessage = useCallback(async () => {
     if (inputMessage.trim()) {
       const messageToSend = inputMessage
-      setInputMessage('') // Clear input immediately
+      setInputMessage('')
       await sendMessage(messageToSend, selectedModel)
     }
   }, [inputMessage, selectedModel, sendMessage, setInputMessage])
@@ -98,13 +98,11 @@ export function useChatViewModel() {
     (chatId: string) => {
       setChats((prev) => prev.filter((chat) => chat.id !== chatId))
 
-      // If we're deleting the active chat, switch to another chat
       if (chatId === activeChatId) {
         const remainingChats = chats.filter((chat) => chat.id !== chatId)
         if (remainingChats.length > 0) {
           switchChat(remainingChats[0].id)
         } else {
-          // If no chats remain, create a new one
           createNewChat()
         }
       }

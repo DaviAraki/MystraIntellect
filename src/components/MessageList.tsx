@@ -13,7 +13,6 @@ interface MessageListProps {
 export function MessageList({ messages, isStreaming }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({
@@ -23,7 +22,6 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
     }
   }, [messages, isStreaming])
 
-  // Auto-scroll during streaming
   useEffect(() => {
     if (isStreaming && bottomRef.current) {
       const scrollInterval = setInterval(() => {

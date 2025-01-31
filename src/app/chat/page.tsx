@@ -46,7 +46,7 @@ export default function ChatPage() {
   const handleProviderChange = (value: string) => {
     const provider = value as 'deepseek' | 'openai'
     setActiveProvider(provider)
-    // Set default model for the selected provider
+
     if (provider === 'deepseek') {
       setSelectedModel(CONFIG.MODELS.DEEPSEEK_CHAT)
     } else {
@@ -74,7 +74,6 @@ export default function ChatPage() {
 
   return (
     <div className='flex h-screen bg-gray-950'>
-      {/* Sidebar */}
       <div className='w-64 bg-gray-900 p-4 flex flex-col'>
         <Button
           onClick={createNewChat}
@@ -83,7 +82,6 @@ export default function ChatPage() {
           New Chat
         </Button>
 
-        {/* Chat List */}
         <div className='flex-1 overflow-y-auto'>
           {chats.map((chat) => (
             <div
@@ -139,7 +137,6 @@ export default function ChatPage() {
           ))}
         </div>
 
-        {/* API Key Input */}
         <div className='mt-4'>
           <Select onValueChange={handleProviderChange} value={activeProvider}>
             <SelectTrigger>
@@ -181,7 +178,6 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Model Selection */}
         <div className='mt-4'>
           <Select onValueChange={handleModelChange} value={selectedModel}>
             <SelectTrigger>
@@ -212,19 +208,15 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Main Chat Area */}
       <div className='flex-1 flex flex-col'>
-        {/* Messages */}
         <div className='flex-1 overflow-hidden'>
           <MessageList messages={messages} isStreaming={isStreaming} />
         </div>
 
-        {/* Error Display */}
         {error && (
           <div className='p-4 bg-red-900 text-white'>Error: {error}</div>
         )}
 
-        {/* Input Area */}
         <form onSubmit={handleMessageSubmit} className='p-4 bg-gray-900'>
           <div className='flex space-x-4'>
             <Textarea

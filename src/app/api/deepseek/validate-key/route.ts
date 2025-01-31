@@ -30,7 +30,6 @@ export async function GET(request: Request) {
       baseURL: 'https://api.deepseek.com', // Correct base URL
     })
 
-    // Test with minimal request
     const testCompletion = await openai.chat.completions.create({
       model: 'deepseek-chat',
       messages: [{ role: 'user', content: 'API key validation test' }],
@@ -62,4 +61,3 @@ export async function GET(request: Request) {
     )
   }
 }
-

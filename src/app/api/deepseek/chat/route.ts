@@ -100,16 +100,13 @@ export async function POST(req: Request) {
             const chunkContent = chunkDelta?.content || ''
             const reasoningContent = chunkDelta?.reasoning_content || ''
 
-            // Handle reasoning content
             if (reasoningContent) {
               if (!isInThinking) {
                 controller.enqueue(new TextEncoder().encode('<think>'))
                 isInThinking = true
               }
               controller.enqueue(new TextEncoder().encode(reasoningContent))
-            }
-            // Handle regular content
-            else {
+            } else {
               if (isInThinking) {
                 controller.enqueue(new TextEncoder().encode('</think>'))
                 isInThinking = false
@@ -120,9 +117,8 @@ export async function POST(req: Request) {
             }
           }
 
-          // Close any open thinking tag at the end
           if (isInThinking) {
-            controller.enqueue(new TextEncoder().encode('</thinking>'))
+            controller.enqueue(new TextEncoder().encode('</think>'))
           }
 
           controller.close()

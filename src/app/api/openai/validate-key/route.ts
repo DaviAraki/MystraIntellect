@@ -18,13 +18,10 @@ export async function GET(req: Request) {
       )
     }
 
-    console.log('Attempting to validate API key...')
     const openai = new OpenAI({ apiKey })
 
-    console.log('Fetching models list...')
     await openai.models.list()
 
-    console.log('API key validation successful')
     return NextResponse.json({ valid: true })
   } catch (error) {
     const errorObj = error as OpenAIError
@@ -59,4 +56,3 @@ export async function GET(req: Request) {
     )
   }
 }
-
