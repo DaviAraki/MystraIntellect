@@ -19,13 +19,13 @@ const processThinkTags = (content: string) => {
       return (
         <div
           key={index}
-          className='my-4 p-4 bg-gray-800 border border-green-400/20 rounded-lg'
+          className='my-2 sm:my-4 p-2 sm:p-4 bg-gray-800 border border-green-400/20 rounded-lg'
         >
-          <div className='text-sm text-green-400 mb-2 font-semibold'>
+          <div className='text-xs sm:text-sm text-green-400 mb-1 sm:mb-2 font-semibold'>
             Reasoning Process:
           </div>
           <ReactMarkdown
-            className='prose prose-invert max-w-none whitespace-pre-wrap break-words'
+            className='prose prose-invert prose-sm sm:prose-base max-w-none whitespace-pre-wrap break-words'
             components={{
               code: ({ className, children, ...props }) =>
                 CodeBlock({ className, children, ...props }),
@@ -40,7 +40,7 @@ const processThinkTags = (content: string) => {
     return (
       <ReactMarkdown
         key={index}
-        className='prose prose-invert max-w-none whitespace-pre-wrap break-words'
+        className='prose prose-invert prose-sm sm:prose-base max-w-none whitespace-pre-wrap break-words'
         components={{
           code: ({ className, children, ...props }) =>
             CodeBlock({ className, children, ...props }),
@@ -62,17 +62,21 @@ export function MessageComponent({ message }: MessageComponentProps) {
   }, [message, isFormatted])
 
   return (
-    <div className='mb-4 flex items-start max-w-[1200px] mx-auto w-full'>
+    <div className='mb-4 flex items-start max-w-[1200px] mx-auto w-full px-2 sm:px-4'>
       {message.role === 'user' ? (
-        <User className='mr-2 h-6 w-6 text-green-400 flex-shrink-0' />
+        <User className='mr-2 h-5 w-5 sm:h-6 sm:w-6 text-green-400 flex-shrink-0 mt-1' />
       ) : (
-        <Bot className='mr-2 h-6 w-6 text-green-400 flex-shrink-0' />
+        <Bot className='mr-2 h-5 w-5 sm:h-6 sm:w-6 text-green-400 flex-shrink-0 mt-1' />
       )}
-      <div className='bg-gray-900 rounded p-4 flex-1 overflow-hidden'>
+      <div className='bg-gray-900 rounded p-2 sm:p-4 flex-1 overflow-hidden'>
         {message.role === 'user' ? (
-          <p className='whitespace-pre-wrap break-words'>{message.content}</p>
+          <p className='whitespace-pre-wrap break-words text-sm sm:text-base'>
+            {message.content}
+          </p>
         ) : (
-          processThinkTags(message.content)
+          <div className='text-sm sm:text-base'>
+            {processThinkTags(message.content)}
+          </div>
         )}
       </div>
     </div>
