@@ -10,8 +10,8 @@ interface MessageComponentProps {
 }
 
 const processThinkTags = (content: string) => {
-  const parts = content.split(/(<think>|<\/think>)/).filter(Boolean)
-  return parts.map((part, index) => {
+  const parts = content?.split(/(<think>|<\/think>)/).filter(Boolean)
+  return parts?.map((part, index) => {
     if (part === '<think>' || part === '</think>') return null
     const isThinkContent = index > 0 && parts[index - 1] === '<think>'
 
