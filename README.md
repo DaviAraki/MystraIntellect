@@ -56,6 +56,7 @@ You can customize the AI's behavior by modifying the system instruction in the `
 ## To-Do List
 
 - [ ] Add a "Clear Chat" button to the chat interface
-- [ ] Add Chat History to the Chat Interface
+- [x] Add Chat History to the Chat Interface
 - [ ] Add a "Settings" button to the chat interface
 - [ ] Improve Preview Code Functionality
+
