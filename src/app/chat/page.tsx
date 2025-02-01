@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useCallback, memo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -15,8 +15,227 @@ import {
 import { MessageList } from '@/components/MessageList'
 import { Menu, X } from 'lucide-react'
 
+// Memoized Chat List Item Component
+const ChatListItem = memo(
+  ({
+    chat,
+    isActive,
+    onSelect,
+    onRename,
+    onDelete,
+  }: {
+    chat: { id: string; name: string }
+    isActive: boolean
+    onSelect: (id: string) => void
+    onRename: (id: string, name: string) => void
+    onDelete: (id: string) => void
+  }) => {
+    const [isEditing, setIsEditing] = useState(false)
+    const [editName, setEditName] = useState(chat.name)
+
+    const handleRename = () => {
+      onRename(chat.id, editName)
+      setIsEditing(false)
+    }
+
+    return (
+      <div
+        className={`mb-2 p-2 rounded cursor-pointer ${
+          isActive ? 'bg-gray-700' : 'hover:bg-gray-800'
+        }`}
+      >
+        {isEditing ? (
+          <Input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            onBlur={handleRename}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleRename()
+            }}
+            autoFocus
+          />
+        ) : (
+          <div className='flex items-center justify-between'>
+            <span onClick={() => onSelect(chat.id)} className='flex-1 truncate'>
+              {chat.name}
+            </span>
+            <div className='flex space-x-2'>
+              <button
+                onClick={() => setIsEditing(true)}
+                className='text-gray-400 hover:text-white'
+              >
+                ✎
+              </button>
+              <button
+                onClick={() => onDelete(chat.id)}
+                className='text-gray-400 hover:text-red-500'
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+)
+ChatListItem.displayName = 'ChatListItem'
+
+// Memoized Sidebar Component
+const Sidebar = memo(
+  ({
+    isOpen,
+    onClose,
+    children,
+  }: {
+    isOpen: boolean
+    onClose: () => void
+    children: React.ReactNode
+  }) => {
+    return (
+      <>
+        <div
+          className={`${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0 fixed lg:relative w-64 h-full bg-gray-900 p-4 flex flex-col transition-transform duration-300 ease-in-out z-40`}
+        >
+          {children}
+        </div>
+        {isOpen && (
+          <div
+            className='fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden'
+            onClick={onClose}
+          />
+        )}
+      </>
+    )
+  }
+)
+Sidebar.displayName = 'Sidebar'
+
+// Memoized Model Selector Component
+const ModelSelector = memo(
+  ({
+    activeProvider,
+    selectedModel,
+    onProviderChange,
+    onModelChange,
+  }: {
+    activeProvider: 'deepseek' | 'openai' | 'qwen'
+    selectedModel: ModelType
+    onProviderChange: (value: string) => void
+    onModelChange: (value: string) => void
+  }) => {
+    return (
+      <div className='space-y-4'>
+        <Select onValueChange={onProviderChange} value={activeProvider}>
+          <SelectTrigger className='w-full'>
+            <SelectValue placeholder='Select Provider' />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value='deepseek'>Deepseek</SelectItem>
+            <SelectItem value='openai'>OpenAI</SelectItem>
+            <SelectItem value='qwen'>Qwen</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select onValueChange={onModelChange} value={selectedModel}>
+          <SelectTrigger className='w-full'>
+            <SelectValue placeholder='Select Model' />
+          </SelectTrigger>
+          <SelectContent>
+            {activeProvider === 'deepseek' ? (
+              <>
+                <SelectItem value={CONFIG.MODELS.DEEPSEEK_CHAT}>
+                  Deepseek Chat
+                </SelectItem>
+                <SelectItem value={CONFIG.MODELS.DEEPSEEK_REASONER}>
+                  Deepseek Reasoner
+                </SelectItem>
+              </>
+            ) : activeProvider === 'openai' ? (
+              <>
+                <SelectItem value={CONFIG.MODELS.OPENAI_GPT4O_MINI}>
+                  GPT-4o Mini
+                </SelectItem>
+                <SelectItem value={CONFIG.MODELS.OPENAI_GPT4O}>
+                  GPT-4
+                </SelectItem>
+              </>
+            ) : (
+              <>
+                <SelectItem value={CONFIG.MODELS.QWEN_TURBO}>
+                  Qwen Turbo
+                </SelectItem>
+                <SelectItem value={CONFIG.MODELS.QWEN_PLUS}>
+                  Qwen Plus
+                </SelectItem>
+                <SelectItem value={CONFIG.MODELS.QWEN_MAX}>Qwen Max</SelectItem>
+              </>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+    )
+  }
+)
+ModelSelector.displayName = 'ModelSelector'
+
+// Memoized Key Management Component
+const KeyManagement = memo(
+  ({
+    activeProvider,
+    apiKeyInput,
+    onApiKeyChange,
+    onKeySubmit,
+    onKeyClear,
+    isKeySet,
+  }: {
+    activeProvider: 'deepseek' | 'openai' | 'qwen'
+    apiKeyInput: string
+    onApiKeyChange: (value: string) => void
+    onKeySubmit: () => void
+    onKeyClear: () => void
+    isKeySet: boolean
+  }) => {
+    return (
+      <div className='space-y-2'>
+        <Input
+          type='password'
+          placeholder={`${
+            activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)
+          } API Key`}
+          value={apiKeyInput}
+          onChange={(e) => onApiKeyChange(e.target.value)}
+        />
+        <div className='flex space-x-2'>
+          <Button
+            onClick={onKeySubmit}
+            className='flex-1 bg-green-600 hover:bg-green-700'
+            disabled={!apiKeyInput.trim()}
+          >
+            Set Key
+          </Button>
+          {isKeySet && (
+            <Button onClick={onKeyClear} variant='destructive'>
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
+    )
+  }
+)
+KeyManagement.displayName = 'KeyManagement'
+
+// Main Chat Page Component
 export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [activeProvider, setActiveProvider] = useState<
+    'deepseek' | 'openai' | 'qwen'
+  >('deepseek')
+
   const {
     messages,
     isStreaming,
@@ -38,52 +257,57 @@ export default function ChatPage() {
     canUseSelectedModel,
   } = useChatViewModel()
 
-  const [editingChatId, setEditingChatId] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState('')
-  const [apiKeyInput, setApiKeyInput] = useState('')
-  const [activeProvider, setActiveProvider] = useState<
-    'deepseek' | 'openai' | 'qwen'
-  >('deepseek')
+  const handleProviderChange = useCallback(
+    (value: string) => {
+      const provider = value as 'deepseek' | 'openai' | 'qwen'
+      setActiveProvider(provider)
 
-  const handleProviderChange = (value: string) => {
-    const provider = value as 'deepseek' | 'openai' | 'qwen'
-    setActiveProvider(provider)
+      if (provider === 'deepseek') {
+        setSelectedModel(CONFIG.MODELS.DEEPSEEK_CHAT)
+      } else if (provider === 'openai') {
+        setSelectedModel(CONFIG.MODELS.OPENAI_GPT4O_MINI)
+      } else {
+        setSelectedModel(CONFIG.MODELS.QWEN_TURBO)
+      }
+    },
+    [setSelectedModel]
+  )
 
-    if (provider === 'deepseek') {
-      setSelectedModel(CONFIG.MODELS.DEEPSEEK_CHAT)
-    } else if (provider === 'openai') {
-      setSelectedModel(CONFIG.MODELS.OPENAI_GPT4O_MINI)
-    } else {
-      setSelectedModel(CONFIG.MODELS.QWEN_TURBO)
-    }
-  }
+  const handleModelChange = useCallback(
+    (value: string) => {
+      setSelectedModel(value as ModelType)
+    },
+    [setSelectedModel]
+  )
 
-  const handleModelChange = (value: string) => {
-    setSelectedModel(value as ModelType)
-  }
-
-  const handleKeySubmit = async () => {
+  const handleKeySubmit = useCallback(async () => {
     if (await validateAndSetApiKey(apiKeyInput, activeProvider)) {
       setApiKeyInput('')
     }
-  }
+  }, [apiKeyInput, activeProvider, validateAndSetApiKey])
 
-  const handleMessageSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!canUseSelectedModel()) {
-      return
-    }
-    await handleSendMessage()
-  }
+  const handleMessageSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!canUseSelectedModel()) {
+        return
+      }
+      await handleSendMessage()
+    },
+    [canUseSelectedModel, handleSendMessage]
+  )
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev)
+  }, [])
 
-  const handleChatSelect = (chatId: string) => {
-    switchChat(chatId)
-    setIsSidebarOpen(false) // Close sidebar after selection on mobile
-  }
+  const handleChatSelect = useCallback(
+    (chatId: string) => {
+      switchChat(chatId)
+      setIsSidebarOpen(false)
+    },
+    [switchChat]
+  )
 
   return (
     <div className='flex h-screen bg-gray-950 relative'>
@@ -100,11 +324,7 @@ export default function ChatPage() {
       </button>
 
       {/* Sidebar */}
-      <div
-        className={`${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:relative w-64 h-full bg-gray-900 p-4 flex flex-col transition-transform duration-300 ease-in-out z-40`}
-      >
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}>
         <Button
           onClick={createNewChat}
           className='mb-4 bg-green-600 hover:bg-green-700'
@@ -114,147 +334,35 @@ export default function ChatPage() {
 
         <div className='flex-1 overflow-y-auto'>
           {chats.map((chat) => (
-            <div
+            <ChatListItem
               key={chat.id}
-              className={`mb-2 p-2 rounded cursor-pointer ${
-                chat.id === activeChatId ? 'bg-gray-700' : 'hover:bg-gray-800'
-              }`}
-            >
-              {editingChatId === chat.id ? (
-                <Input
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onBlur={() => {
-                    renameChat(chat.id, editingName)
-                    setEditingChatId(null)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      renameChat(chat.id, editingName)
-                      setEditingChatId(null)
-                    }
-                  }}
-                  autoFocus
-                />
-              ) : (
-                <div className='flex items-center justify-between'>
-                  <span
-                    onClick={() => handleChatSelect(chat.id)}
-                    className='flex-1 truncate'
-                  >
-                    {chat.name}
-                  </span>
-                  <div className='flex space-x-2'>
-                    <button
-                      onClick={() => {
-                        setEditingChatId(chat.id)
-                        setEditingName(chat.name)
-                      }}
-                      className='text-gray-400 hover:text-white'
-                    >
-                      ✎
-                    </button>
-                    <button
-                      onClick={() => deleteChat(chat.id)}
-                      className='text-gray-400 hover:text-red-500'
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+              chat={chat}
+              isActive={chat.id === activeChatId}
+              onSelect={handleChatSelect}
+              onRename={renameChat}
+              onDelete={deleteChat}
+            />
           ))}
         </div>
 
         <div className='mt-4 space-y-4'>
-          <Select onValueChange={handleProviderChange} value={activeProvider}>
-            <SelectTrigger className='w-full'>
-              <SelectValue placeholder='Select Provider' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='deepseek'>Deepseek</SelectItem>
-              <SelectItem value='openai'>OpenAI</SelectItem>
-              <SelectItem value='qwen'>Qwen</SelectItem>
-            </SelectContent>
-          </Select>
+          <ModelSelector
+            activeProvider={activeProvider}
+            selectedModel={selectedModel}
+            onProviderChange={handleProviderChange}
+            onModelChange={handleModelChange}
+          />
 
-          <div className='space-y-2'>
-            <Input
-              type='password'
-              placeholder={`${
-                activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)
-              } API Key`}
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-            />
-            <div className='flex space-x-2'>
-              <Button
-                onClick={handleKeySubmit}
-                className='flex-1 bg-green-600 hover:bg-green-700'
-                disabled={!apiKeyInput.trim()}
-              >
-                Set Key
-              </Button>
-              {isApiKeySet[activeProvider] && (
-                <Button
-                  onClick={() => clearApiKey(activeProvider)}
-                  variant='destructive'
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <Select onValueChange={handleModelChange} value={selectedModel}>
-            <SelectTrigger className='w-full'>
-              <SelectValue placeholder='Select Model' />
-            </SelectTrigger>
-            <SelectContent>
-              {activeProvider === 'deepseek' ? (
-                <>
-                  <SelectItem value={CONFIG.MODELS.DEEPSEEK_CHAT}>
-                    Deepseek Chat
-                  </SelectItem>
-                  <SelectItem value={CONFIG.MODELS.DEEPSEEK_REASONER}>
-                    Deepseek Reasoner
-                  </SelectItem>
-                </>
-              ) : activeProvider === 'openai' ? (
-                <>
-                  <SelectItem value={CONFIG.MODELS.OPENAI_GPT4O_MINI}>
-                    GPT-4o Mini
-                  </SelectItem>
-                  <SelectItem value={CONFIG.MODELS.OPENAI_GPT4O}>
-                    GPT-4
-                  </SelectItem>
-                </>
-              ) : (
-                <>
-                  <SelectItem value={CONFIG.MODELS.QWEN_TURBO}>
-                    Qwen Turbo
-                  </SelectItem>
-                  <SelectItem value={CONFIG.MODELS.QWEN_PLUS}>
-                    Qwen Plus
-                  </SelectItem>
-                  <SelectItem value={CONFIG.MODELS.QWEN_MAX}>
-                    Qwen Max
-                  </SelectItem>
-                </>
-              )}
-            </SelectContent>
-          </Select>
+          <KeyManagement
+            activeProvider={activeProvider}
+            apiKeyInput={apiKeyInput}
+            onApiKeyChange={setApiKeyInput}
+            onKeySubmit={handleKeySubmit}
+            onKeyClear={() => clearApiKey(activeProvider)}
+            isKeySet={isApiKeySet[activeProvider]}
+          />
         </div>
-      </div>
-
-      {/* Overlay for mobile */}
-      {isSidebarOpen && (
-        <div
-          className='fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden'
-          onClick={toggleSidebar}
-        />
-      )}
+      </Sidebar>
 
       {/* Main Content */}
       <div className='flex-1 flex flex-col w-full'>
