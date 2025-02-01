@@ -113,7 +113,9 @@ export function useChatViewModel() {
   const canUseSelectedModel = useCallback(() => {
     const provider = selectedModel.startsWith('deepseek')
       ? 'deepseek'
-      : 'openai'
+      : selectedModel.startsWith('gpt')
+      ? 'openai'
+      : 'qwen'
     return isApiKeySet[provider]
   }, [selectedModel, isApiKeySet])
 
