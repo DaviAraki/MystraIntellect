@@ -41,18 +41,20 @@ export default function ChatPage() {
   const [editingChatId, setEditingChatId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
   const [apiKeyInput, setApiKeyInput] = useState('')
-  const [activeProvider, setActiveProvider] = useState<'deepseek' | 'openai'>(
-    'deepseek'
-  )
+  const [activeProvider, setActiveProvider] = useState<
+    'deepseek' | 'openai' | 'qwen'
+  >('deepseek')
 
   const handleProviderChange = (value: string) => {
-    const provider = value as 'deepseek' | 'openai'
+    const provider = value as 'deepseek' | 'openai' | 'qwen'
     setActiveProvider(provider)
 
     if (provider === 'deepseek') {
       setSelectedModel(CONFIG.MODELS.DEEPSEEK_CHAT)
-    } else {
+    } else if (provider === 'openai') {
       setSelectedModel(CONFIG.MODELS.OPENAI_GPT4O_MINI)
+    } else {
+      setSelectedModel(CONFIG.MODELS.QWEN_TURBO)
     }
   }
 
@@ -173,6 +175,7 @@ export default function ChatPage() {
             <SelectContent>
               <SelectItem value='deepseek'>Deepseek</SelectItem>
               <SelectItem value='openai'>OpenAI</SelectItem>
+              <SelectItem value='qwen'>Qwen</SelectItem>
             </SelectContent>
           </Select>
 
@@ -218,13 +221,25 @@ export default function ChatPage() {
                     Deepseek Reasoner
                   </SelectItem>
                 </>
-              ) : (
+              ) : activeProvider === 'openai' ? (
                 <>
                   <SelectItem value={CONFIG.MODELS.OPENAI_GPT4O_MINI}>
                     GPT-4o Mini
                   </SelectItem>
                   <SelectItem value={CONFIG.MODELS.OPENAI_GPT4O}>
                     GPT-4
+                  </SelectItem>
+                </>
+              ) : (
+                <>
+                  <SelectItem value={CONFIG.MODELS.QWEN_TURBO}>
+                    Qwen Turbo
+                  </SelectItem>
+                  <SelectItem value={CONFIG.MODELS.QWEN_PLUS}>
+                    Qwen Plus
+                  </SelectItem>
+                  <SelectItem value={CONFIG.MODELS.QWEN_MAX}>
+                    Qwen Max
                   </SelectItem>
                 </>
               )}

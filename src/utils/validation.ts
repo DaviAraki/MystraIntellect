@@ -14,6 +14,12 @@ export const validateMessage = (message: string): boolean => {
 }
 
 export const validateModel = (model: string): boolean => {
-  return ['gpt-4o-mini', 'gpt-4o'].includes(model)
+  return [
+    'gpt-4o-mini',
+    'gpt-4o',
+    'qwen-plus',
+    'qwen-max',
+    'qwen-turbo',
+  ].includes(model)
 }
 
