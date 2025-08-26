@@ -118,7 +118,7 @@ export function useChat(apiKeys: ApiKeys, isApiKeySet: ApiKeyStatus) {
                 );
                 continue; // Skip this chunk as it's not part of the message
               }
-            } catch (e) {
+            } catch {
               // If parsing fails, treat it as regular message content
             }
           }
