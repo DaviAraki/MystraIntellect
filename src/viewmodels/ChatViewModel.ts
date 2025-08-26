@@ -1,36 +1,36 @@
-import { useState, useCallback, useEffect } from 'react'
-import { useApiKey } from '@/hooks/useApiKey'
-import { useChat } from '@/hooks/useChat'
-import { CONFIG } from '@/config/constants'
-import { ModelType } from '@/config/constants'
+import { useState, useCallback, useEffect } from "react";
+import { useApiKey } from "@/hooks/useApiKey";
+import { useChat } from "@/hooks/useChat";
+import { CONFIG } from "@/config/constants";
+import { ModelType } from "@/config/constants";
 
 interface Chat {
-  id: string
-  name: string
-  threadId?: string
+  id: string;
+  name: string;
+  threadId?: string;
 }
 
 export function useChatViewModel() {
   const [chats, setChats] = useState<Chat[]>(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       try {
-        const savedChats = localStorage.getItem(CONFIG.STORAGE.CHATS)
+        const savedChats = localStorage.getItem(CONFIG.STORAGE.CHATS);
         if (savedChats) {
-          const parsedChats = JSON.parse(savedChats)
-          return parsedChats
+          const parsedChats = JSON.parse(savedChats);
+          return parsedChats;
         }
       } catch (error) {
-        console.error('Error parsing chats from localStorage:', error)
+        console.error("Error parsing chats from localStorage:", error);
       }
-      return [{ id: '1', name: 'New Chat' }]
+      return [{ id: "1", name: "New Chat" }];
     }
-    return [{ id: '1', name: 'New Chat' }]
-  })
+    return [{ id: "1", name: "New Chat" }];
+  });
 
-  const [inputMessage, setInputMessage] = useState('')
+  const [inputMessage, setInputMessage] = useState("");
   const [selectedModel, setSelectedModel] = useState<ModelType>(
-    CONFIG.MODELS.DEEPSEEK_CHAT
-  )
+    CONFIG.MODELS.DEEPSEEK_CHAT,
+  );
 
   const {
     apiKeys,
@@ -38,7 +38,7 @@ export function useChatViewModel() {
     error: apiKeyError,
     validateAndSetApiKey,
     clearApiKey,
-  } = useApiKey()
+  } = useApiKey();
 
   const {
     messages,
@@ -50,74 +50,74 @@ export function useChatViewModel() {
     activeChatId,
     clearMessages,
     setIsStreaming,
-  } = useChat()
+  } = useChat(apiKeys, isApiKeySet);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(CONFIG.STORAGE.CHATS, JSON.stringify(chats))
+    if (typeof window !== "undefined") {
+      localStorage.setItem(CONFIG.STORAGE.CHATS, JSON.stringify(chats));
     }
-  }, [chats])
+  }, [chats]);
 
   const createNewChat = useCallback(() => {
     const newChat: Chat = {
       id: Date.now().toString(),
-      name: 'New Chat',
-    }
-    setChats((prev) => [...prev, newChat])
-    setActiveChatId(newChat.id)
-    clearMessages(newChat.id)
-  }, [setActiveChatId, clearMessages])
+      name: "New Chat",
+    };
+    setChats((prev) => [...prev, newChat]);
+    setActiveChatId(newChat.id);
+    clearMessages(newChat.id);
+  }, [setActiveChatId, clearMessages]);
 
   const handleSendMessage = useCallback(async () => {
     if (inputMessage.trim()) {
-      const messageToSend = inputMessage
-      setInputMessage('')
-      await sendMessage(messageToSend, selectedModel)
+      const messageToSend = inputMessage;
+      setInputMessage("");
+      await sendMessage(messageToSend, selectedModel);
     }
-  }, [inputMessage, selectedModel, sendMessage, setInputMessage])
+  }, [inputMessage, selectedModel, sendMessage, setInputMessage]);
 
   const switchChat = useCallback(
     (chatId: string) => {
-      setActiveChatId(chatId)
-      loadThreadHistory(chatId)
+      setActiveChatId(chatId);
+      loadThreadHistory(chatId);
     },
-    [setActiveChatId, loadThreadHistory]
-  )
+    [setActiveChatId, loadThreadHistory],
+  );
 
   const renameChat = useCallback((chatId: string, newName: string) => {
     setChats((prev) =>
       prev.map((chat) =>
         chat.id === chatId
-          ? { ...chat, name: newName.trim() || 'Untitled Chat' }
-          : chat
-      )
-    )
-  }, [])
+          ? { ...chat, name: newName.trim() || "Untitled Chat" }
+          : chat,
+      ),
+    );
+  }, []);
 
   const deleteChat = useCallback(
     (chatId: string) => {
-      setChats((prev) => prev.filter((chat) => chat.id !== chatId))
+      setChats((prev) => prev.filter((chat) => chat.id !== chatId));
 
       if (chatId === activeChatId) {
-        const remainingChats = chats.filter((chat) => chat.id !== chatId)
+        const remainingChats = chats.filter((chat) => chat.id !== chatId);
         if (remainingChats.length > 0) {
-          switchChat(remainingChats[0].id)
+          switchChat(remainingChats[0].id);
         } else {
-          createNewChat()
+          createNewChat();
         }
       }
     },
-    [activeChatId, chats, switchChat, createNewChat]
-  )
+    [activeChatId, chats, switchChat, createNewChat],
+  );
 
   const canUseSelectedModel = useCallback(() => {
-    const provider = selectedModel.startsWith('deepseek')
-      ? 'deepseek'
-      : selectedModel.startsWith('gpt')
-      ? 'openai'
-      : 'qwen'
-    return isApiKeySet[provider]
-  }, [selectedModel, isApiKeySet])
+    const provider = selectedModel.startsWith("deepseek")
+      ? "deepseek"
+      : selectedModel.startsWith("gpt")
+      ? "openai"
+      : "qwen";
+    return isApiKeySet[provider];
+  }, [selectedModel, isApiKeySet]);
 
   return {
     messages,
@@ -141,5 +141,5 @@ export function useChatViewModel() {
     setIsStreaming,
     canUseSelectedModel,
     apiKeys,
-  }
+  };
 }
